@@ -80,3 +80,28 @@ Format: what the AI got wrong -> how it was caught -> fix.
 22. **Mock numbers are not evidence.** Every "LLM" number in this phase (overlaps, 40 output
     tokens/candidate, ablation verdicts) comes from the deterministic mock. They prove the wiring,
     not the model. Real numbers come from the smoke and full runs.
+
+## First real-LLM run (Gemini smoke)
+
+23. **Default model was wrong.** I had set `gemini-2.5-flash` from memory (flagged as unverified
+    earlier). The live model list showed newer models, and `gemini-2.5-flash-lite` is "no longer
+    available to new users". Chose `gemini-3.5-flash-lite` after probing JSON output.
+24. **Adapter fallback relied on a hint that does not exist.** `gemini-3.5-flash-lite` rejects
+    `thinkingBudget: 0` with a bare `INVALID_ARGUMENT`; my fallback only reacted to messages that
+    mentioned "thinking". Fixed to drop optional parameters on a hint-free 400, plus a regression test.
+25. **Case-sensitive id matching rejected ~30% of real answers.** Gemini answered `"id": "C1"`
+    (copying my prompt's uppercase header); I matched `c1`. The mock always answered in lowercase, so
+    169 tests missed it. Smoke caught it: 11/36 rejections. Fixed (case-insensitive + lowercase
+    labels in prompts); second smoke: 0 rejections, 0 retries, 0 truncations.
+26. **Two more real-model habits, found only in llm_raw:** an unescaped double quote inside "why"
+    (invalid JSON) and re-using a neighbouring candidate's hook id. Prompt hardened for both.
+27. **Quota file name bug:** `Path.with_suffix` treated `.5-flash-lite` as an extension, so
+    `gemini-3.5-...` and `gemini-3.1-...` shared one daily counter (`quota_gemini_gemini-3.json`).
+    Found by looking at the state file, not by a test. Fixed with a regression test.
+28. **A test hazard I created:** once `.env` held a real key and provider, any test calling
+    `LLMSettings()` could have spent real quota. I verified none did (counter matched the smoke
+    run exactly), then added an autouse fixture that forces the mock and removes all API keys.
+29. **A latent flaky test since Phase 3.5:** `next(glob("*/*"))` can return `rules_baseline/`
+    instead of the run directory; it only passed by directory-order luck. Fixed.
+30. **Missing observability:** the 3 transient retries in the smoke log did not say which error
+    occurred. Added the error type to the retry log.

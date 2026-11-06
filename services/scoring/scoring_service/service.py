@@ -167,7 +167,7 @@ class Scorer:
         self, task: str, prompt: Any, jobs: list[Job], labels: dict[str, str], note: str
     ) -> LLMRequest:
         blocks = "\n\n".join(
-            f"=== {labels[j.cand_id].upper()} ===\n{blind_text(j.view, self.red)}" for j in jobs
+            f"=== {labels[j.cand_id]} ===\n{blind_text(j.view, self.red)}" for j in jobs
         )
         system, user = prompt.render(candidates=blocks, retry_note=note)
         meta = {

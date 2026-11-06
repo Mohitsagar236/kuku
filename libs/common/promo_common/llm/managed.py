@@ -103,7 +103,12 @@ class ManagedLLM:
                 wait += self._rng.uniform(0, 0.25 * max(wait, 0.1))
                 log.warning(
                     "llm_retry",
-                    extra={"task": req.task, "attempt": attempt, "wait_s": round(wait, 2)},
+                    extra={
+                        "task": req.task,
+                        "attempt": attempt,
+                        "wait_s": round(wait, 2),
+                        "error": f"{type(e).__name__}: {str(e)[:100]}",
+                    },
                 )
                 self._sleep(wait)
         cost = self.pricing.cost(resp.model or self.model, resp.tokens_in, resp.tokens_out)

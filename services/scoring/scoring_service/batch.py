@@ -65,7 +65,7 @@ def run_batch(
         try:
             parsed = extract_json(resp.text)
             rows = parsed["results"] if isinstance(parsed, dict) else parsed
-            by_label = {str(r.get("id")): r for r in rows if isinstance(r, dict)}
+            by_label = {str(r.get("id")).strip().lower(): r for r in rows if isinstance(r, dict)}
         except (InvalidLLMOutput, KeyError, TypeError, AttributeError) as e:
             bump(f"{task}_invalid_json")
             for j in pending:
@@ -75,7 +75,7 @@ def run_batch(
         failed: list[Job] = []
         reasons: list[str] = []
         for j in pending:
-            row = by_label.get(labels[j.cand_id])
+            row = by_label.get(labels[j.cand_id].lower())
             if row is None:
                 result, err = None, "missing from response"
             else:

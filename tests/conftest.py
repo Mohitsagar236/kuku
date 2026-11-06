@@ -8,6 +8,21 @@ from tests.candidate.conftest import make_show
 from tests.shared import story_episode
 
 
+@pytest.fixture(autouse=True)
+def _never_call_a_real_llm(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The author's .env holds a real key and provider. Tests must never reach it."""
+    monkeypatch.setenv("LLM_PROVIDER", "mock")
+    monkeypatch.setenv("LLM_MODEL", "")
+    for var in (
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "GROQ_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "OPENAI_API_KEY",
+    ):
+        monkeypatch.delenv(var, raising=False)
+
+
 @pytest.fixture(scope="session")
 def cfg() -> CandidateConfig:
     return load_config()

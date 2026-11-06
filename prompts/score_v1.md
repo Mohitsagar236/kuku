@@ -28,7 +28,11 @@ HARD RULES
 - Optional trim: "ts" = an ID inside the candidate where the clip should START instead (only if the
   first beats are dead weight); "te" = an ID where it should END instead. Omit both when no trim helps.
   A trim must keep the hook in the first 3 seconds.
-- "why": ONE sentence, at most 25 words, plain language.
+- Every candidate has its OWN eligible lists, even when candidates share beats. Copy the "hook" id
+  from THAT candidate's hook-eligible list and the "cliff" id from ITS cliff-eligible list; never
+  reuse another candidate's choice. Use the candidate label exactly as written (for example c3).
+- "why": ONE sentence, at most 25 words, plain language. Never use double quotes or line breaks
+  inside "why" (it must stay valid JSON).
 - Reply with JSON only, exactly this shape, one result per candidate:
   {"results":[{"id":"c1","hook":"e15_b030","cliff":"e15_b054","h":7,"c":6,"i":5,"s":2,"why":"..."}]}
 

@@ -31,8 +31,13 @@ class MockProvider(LLMClient):
     provider = "mock"
 
     def __init__(
-        self, model: str = "mock-1", faults: list[str] | None = None, jitter: int = 0
+        self,
+        model: str = "mock-1",
+        faults: list[str] | None = None,
+        jitter: int = 0,
+        upper_ids: bool = False,
     ) -> None:
+        self.upper_ids = upper_ids  # answer with "C1" like Gemini did, not "c1"
         self.model = model
         self.faults = list(faults or [])
         self.jitter = jitter  # >0: scores move between repeated calls (stability tests)
@@ -57,6 +62,9 @@ class MockProvider(LLMClient):
             "coherence": self._coherence,
             "rerank": self._rerank,
         }.get(req.task, lambda m, nz, f: {})(req.meta, noise, fault)
+        if self.upper_ids:
+            for row in body.get("results", []):
+                row["id"] = str(row["id"]).upper()
         text = "not json at all" if fault == "invalid_json" else json.dumps(body)
         if fault == "truncated":
             text = text[: len(text) // 2]

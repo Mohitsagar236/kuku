@@ -250,3 +250,20 @@ def test_batch_counts_match_design(show, cands, scfg) -> None:
     calls = [r.task for r in spy.requests]
     assert calls.count("clarity") == math.ceil(len(cands) / scfg.clarity_batch)
     assert calls.count("coherence") == math.ceil(n_st / scfg.stitched_batch)
+
+
+# ---- regressions from the first real Gemini smoke run -----------------------------------------
+def test_uppercase_ids_from_the_model_are_accepted(show, cands, scfg) -> None:
+    """Gemini answered "C1" (copying the prompt header); we expected "c1" and rejected everything."""
+    spy = SpyMock(upper_ids=True)
+    out = Scorer(make_llm(spy), show, scfg).score(cands)
+    assert all(s.main_ok and s.clarity_ok for s in out.values())
+    assert not any("REJECTED" in r.user for r in spy.requests)  # no wasted retries
+
+
+def test_prompt_labels_match_the_label_the_model_must_return(show, cands, scfg) -> None:
+    spy = SpyMock()
+    Scorer(make_llm(spy), show, scfg).score(cands)
+    req = next(r for r in spy.requests if r.task == "score")
+    assert "\nc1 (" in req.user and "\nC1 (" not in req.user
+    assert "own eligible lists" in req.system.lower() and "double quotes" in req.system

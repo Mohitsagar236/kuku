@@ -185,7 +185,9 @@ def test_rules_only_mode_needs_no_llm(
         ["run", str(show_dir), "--out", str(tmp_path / "o"), "--no-cache", "--provider", "none"]
     )
     assert rc == 0
-    out = next((tmp_path / "o").glob("*/*"))
+    out = next(
+        d for d in (tmp_path / "o").glob("*/*") if d.name != "rules_baseline"
+    )  # glob order is arbitrary
     doc = json.loads((out / "promos.json").read_text())
     assert doc["partial"] is True and doc["promos"]
     assert all("rule_fallback_main" in p["flags"] for p in doc["promos"])

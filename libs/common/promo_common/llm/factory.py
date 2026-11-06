@@ -68,13 +68,12 @@ def build_llm(
     client = build_client(s)
     cache_root = Path(s.cache_dir)
     cache = FileCache(cache_root / "responses") if persist else MemoryCache()
-    quota_file = cache_root / f"quota_{client.provider}_{client.model}".replace(":", "_")
+    safe = f"{client.provider}_{client.model}".replace(":", "_").replace("/", "_")
+    quota_file = cache_root / f"quota_{safe}.json"  # NOT with_suffix: model names contain dots
     limiter = RateLimiter(
         s.rpm if client.provider != "mock" else 0,
         s.rpd if client.provider != "mock" else 0,
-        state_path=quota_file.with_suffix(".json")
-        if persist and client.provider != "mock"
-        else None,
+        state_path=quota_file if persist and client.provider != "mock" else None,
     )
     try:
         pricing = Pricing.load(find_config_dir() / "pricing.yaml")

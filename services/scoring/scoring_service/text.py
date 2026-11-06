@@ -55,7 +55,7 @@ def candidate_header(label: str, v: CandView, ids: IdMap) -> str:
     last = [ids.to_short[sv.beats[-1].id] for sv in v.segs if sv.beats]
     ranges = "; ".join(f"{a}..{b}" for a, b in zip(first, last, strict=False))
     return (
-        f"{label.upper()} ({v.cand.kind}, {v.cand.duration_s:.0f}s, {segs})\n"
+        f"{label} ({v.cand.kind}, {v.cand.duration_s:.0f}s, {segs})\n"
         f"  beats: {ranges}\n"
         f"  hook-eligible (first 3s): {', '.join(v.hook_ok)}\n"
         f"  cliff-eligible (final seconds): {', '.join(v.cliff_ok)}"

@@ -193,3 +193,17 @@ def test_prompts_load_render_and_version(tmp_path: Path) -> None:
     (tmp_path / "bad_v1.md").write_text("no sections")
     with pytest.raises(ValueError):
         load_prompt("bad_v1", tmp_path)
+
+
+def test_quota_file_name_keeps_dotted_model_names_apart(tmp_path) -> None:
+    """Regression: with_suffix() chopped 'gemini-3.5-flash-lite' to 'gemini-3', merging models."""
+
+    def limiter_path(model: str) -> Path:
+        s = LLMSettings(provider="ollama", model=model, cache_dir=str(tmp_path), _env_file=None)
+        path = build_llm(s).limiter._path
+        assert path is not None
+        return path
+
+    a, b = limiter_path("m-3.5-flash-lite"), limiter_path("m-3.1-flash-lite")
+    assert a != b
+    assert a.name == "quota_ollama_m-3.5-flash-lite.json"
