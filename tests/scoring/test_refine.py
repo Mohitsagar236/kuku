@@ -119,6 +119,8 @@ def test_llm_moves_the_end_to_the_cutoff_line_and_code_recomputes_the_duration(s
     )
     assert validate_segments(story, [seg_obj]) == []
     assert res.final_stats.ends_refined == 1
+    # the reported LLM cliffhanger is the DELIVERED end's score, not the old end's
+    assert p.scores.llm_cliffhanger == scores[cand.id].end_cliff != scores[cand.id].cliffhanger
 
 
 def test_keeps_the_present_end_when_it_is_already_the_best(story, scfg) -> None:

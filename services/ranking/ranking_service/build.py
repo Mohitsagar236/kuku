@@ -179,7 +179,7 @@ def finalize(
             rule_hook=sig.hook, rule_cliffhanger=sig.cliffhanger,
             rule_intensity=sig.intensity, rule_clarity=sig.clarity,
             llm_hook=llm.hook if llm and llm.main_ok else None,
-            llm_cliffhanger=llm.cliffhanger if llm and llm.main_ok else None,
+            llm_cliffhanger=llm.ranking_cliffhanger if llm and llm.main_ok else None,
             llm_intensity=llm.intensity if llm and llm.main_ok else None,
             llm_clarity=llm.clarity if llm and llm.clarity_ok else None,
             rerank_rank=round(f.rerank_rank) if f.rerank_rank is not None else None,
