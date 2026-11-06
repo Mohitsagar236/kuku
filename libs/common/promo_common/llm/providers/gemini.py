@@ -13,7 +13,14 @@ class GeminiProvider(HttpProvider):
     send_thinking = True
 
     def _adapt(self, body: str) -> bool:
-        if self.send_thinking and "thinking" in body.lower():
+        low = body.lower()
+        # Some models (e.g. 3.x flash-lite) reject thinkingBudget with a bare INVALID_ARGUMENT and
+        # no hint. Drop the optional thinking config first, then fall back to the temperature rule.
+        if (
+            self.send_thinking
+            and self.thinking_budget is not None
+            and ("thinking" in low or "invalid argument" in low or "invalid_argument" in low)
+        ):
             self.send_thinking = False
             return True
         return super()._adapt(body)

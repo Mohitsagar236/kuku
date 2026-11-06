@@ -46,11 +46,13 @@ def build_client(s: LLMSettings) -> LLMClient:
         raise LLMAuthError(f"LLM_PROVIDER={name} but {env} is not set (put it in .env)")
     if name == "gemini":
         g = GeminiProvider(model, key, s.timeout_s)
-        # Gemini 2.5 "thinks" by default and those tokens count against the output limit, which
-        # can truncate JSON. Disable for non-Pro models unless the user sets LLM_THINKING_BUDGET.
-        g.thinking_budget = (
-            s.thinking_budget if s.thinking_budget is not None else (None if "pro" in model else 0)
-        )
+        # Gemini 2.5 Flash "thinks" by default and those tokens count against the output limit,
+        # which can truncate JSON: switch it off there. Other models (3.x) either do not think by
+        # default or use a different control, so nothing is sent unless LLM_THINKING_BUDGET is set.
+        if s.thinking_budget is not None:
+            g.thinking_budget = s.thinking_budget
+        elif "2.5-flash" in model:
+            g.thinking_budget = 0
         return g
     if name == "groq":
         return GroqProvider(model, key, s.timeout_s)

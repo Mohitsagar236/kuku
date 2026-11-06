@@ -216,17 +216,37 @@ def test_gemini_drops_thinking_config_if_model_rejects_it() -> None:
     assert "thinkingConfig" in bodies[0] and "thinkingConfig" not in bodies[1]
 
 
-def test_factory_disables_gemini_thinking_for_flash_but_not_pro(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    from promo_common.llm import LLMSettings, build_client
+def test_gemini_bare_invalid_argument_drops_thinking_config() -> None:
+    """Live finding: gemini-3.5-flash-lite rejects thinkingBudget with a hint-free INVALID_ARGUMENT."""
+    seen = []
 
-    for var in ("LLM_THINKING_BUDGET",):
-        monkeypatch.delenv(var, raising=False)
-    flash = build_client(
-        LLMSettings(provider="gemini", model="gemini-2.5-flash", gemini_api_key="k", _env_file=None)
-    )
-    pro = build_client(
-        LLMSettings(provider="gemini", model="gemini-2.5-pro", gemini_api_key="k", _env_file=None)
-    )
-    assert flash.thinking_budget == 0 and pro.thinking_budget is None
+    def h(r: httpx.Request) -> httpx.Response:
+        cfg = json.loads(r.content)["generationConfig"]
+        seen.append(dict(cfg))
+        if "thinkingConfig" in cfg:
+            return httpx.Response(400, json={"error": {"code": 400, "status": "INVALID_ARGUMENT",
+                                                       "message": "Request contains an invalid argument."}})  # fmt: skip
+        return httpx.Response(200, json={"candidates": [{"content": {"parts": [{"text": "{}"}]}}], "usageMetadata": {}})  # fmt: skip
+
+    g = GeminiProvider("gemini-3.5-flash-lite", "K", transport=transport(h))
+    g.thinking_budget = 0
+    assert g.complete(REQ).text == "{}"
+    assert len(seen) == 2 and "thinkingConfig" not in seen[1] and "temperature" in seen[1]
+    g.complete(REQ)  # remembered: no wasted request next time
+    assert len(seen) == 3
+
+
+def test_gemini_default_model_and_thinking_policy(monkeypatch) -> None:
+    from promo_common.llm import LLMSettings, build_client
+    from promo_common.llm.settings import DEFAULT_MODELS
+
+    monkeypatch.delenv("LLM_THINKING_BUDGET", raising=False)
+
+    def mk(m: str):
+        return build_client(
+            LLMSettings(provider="gemini", model=m, gemini_api_key="k", _env_file=None)
+        )
+
+    assert DEFAULT_MODELS["gemini"] == "gemini-3.5-flash-lite"
+    assert mk("gemini-2.5-flash").thinking_budget == 0  # the 2.5 family thinks by default
+    assert mk("gemini-3.5-flash-lite").thinking_budget is None  # nothing sent: model rejects it
