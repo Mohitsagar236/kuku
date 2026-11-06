@@ -1,0 +1,50 @@
+EPISODE NUMBER: Episode 2
+EPISODE LOGLINE: Marta confronts the harbormaster.
+CONTINUITY NOTES: Picks up directly from Episode 1's cliffhanger.
+--- SCRIPT START ---
+
+SCENE 01
+SCENE HEADING: INT. HARBORMASTER OFFICE – CONTINUOUS
+SCENE START: 00:00.00
+SCENE END: 00:30.00
+Actions and dialogue:
+
+stray line of text that belongs to nothing
+
+**HARBORMASTER (Stern):**
+Start: (00:00.50) | End: (00:02.50)
+“You will not like what the last page says.”
+
+**MARTA (Defiant):**
+Start: (00:03.00) | End: (00:04.50)
+"Tell me anyway."
+
+**TRANSITION:**
+Start: (00:05.00) | End: (00:05.50)
+SMASH CUT TO:
+
+**FLASHBACK:**
+Start: (00:05.50) | End: (00:08.00)
+Young Marta hides a brass key under the floorboards.
+
+**OWEN (Panicked):**
+Start: (bad) | End: (00:09.00)
+"We have to burn it."
+
+**OWEN (Panicked):**
+Start: (00:09.50) | End: (xx:yy)
+"Burn it before she wakes."
+
+**ACTION:**
+Start: (00:11.00) | End: (00:10.00)
+Owen drops the match.
+
+**ACTION:**
+Start: (00:12.00) | End: (00:13.00)
+
+**MARTA (Whispering:**
+Start: (00:14.00) | End: (00:16.00)
+"The key. It was Mother's."
+
+--- SCRIPT END ---
+trailing garbage that must be ignored

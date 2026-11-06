@@ -1,0 +1,12 @@
+# Copy to golden.yaml (git-ignored) and label ~10 promos you would genuinely post.
+# Times are mm:ss.xx strings or plain seconds, relative to the episode. One entry per promo.
+# Use `segments:` for a multi-segment promo. `note` is free text for you.
+promos:
+  - episode: 1
+    start: "00:00.0"
+    end: "00:35.0"
+    note: "what makes it a good promo"
+  - segments:
+      - {episode: 3, start: "00:40.0", end: "00:52.0"}
+      - {episode: 3, start: "01:30.0", end: "01:48.0"}
+    note: "stitched example"

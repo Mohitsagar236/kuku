@@ -1,0 +1,58 @@
+# Candidate-service settings. All times in seconds.
+candidate:
+  min_total_s: 20
+  max_total_s: 60
+  hook_window_s: 3.0
+  min_segment_s: 3.0
+  max_segments: 3
+  # selection
+  nms_iou: 0.5            # drop windows overlapping a better one by more than this IoU
+  nms_edge_tol_s: 1.5     # ...or sharing (almost) the same start or the same end
+  pool_per_episode: 24    # kept per episode before cross-episode recap dedupe
+  top_n_per_episode: 8    # sent to the scorer (single windows)
+  stitch_top_n_total: 40  # stitched candidates sent to the scorer, whole show
+  # episode-ending prior
+  episode_end_weight: 0.25  # prior for windows ending at the episode end (was 0.45; 0 = ablation)
+  tail_window_s: 8.0      # a cut within this many seconds of the episode end gets a partial bonus
+  cue_window_s: 8.0       # look this far before the cut for cliffhanger sound/camera cues
+  # stitching
+  hook_seeds_per_episode: 3
+  cliff_seeds_per_episode: 3
+  max_episode_gap: 1      # H and C may be at most this many episodes apart
+  min_gap_same_episode_s: 2.0
+  seed_min_hook: 3.0      # minimum rule hook score for a stitching hook seed
+  seed_min_cliff: 3.0
+  seed_spacing_s: 6.0
+  stitch_penalty: 0.7     # subtracted from rule score: stitched promos are riskier
+  # recap detection (episode N+1 replaying the end of N)
+  recap_head_s: 30
+  recap_tail_s: 60
+  recap_min_words: 3
+  recap_similarity: 0.85
+  recap_overlap: 0.6      # cross-episode candidates sharing this fraction of lines are duplicates
+  # rule score weights (sum to 1)
+  weights: {hook: 0.35, cliffhanger: 0.35, intensity: 0.15, clarity: 0.15}
+  dead_air_s: 6.0         # a stretch without dialogue/action/sfx longer than this is penalised
+
+scoring:
+  score_prompt: score_v1
+  clarity_prompt: clarity_v1
+  coherence_prompt: coherence_v1
+  rerank_prompt: rerank_v1
+  max_batch: 8
+  stitched_batch: 5
+  clarity_batch: 6
+  max_validation_retries: 2
+  rerank_pool: 30
+  rerank_passes: 2        # second pass shows the shortlist reversed to cancel position bias
+  cascade_top: 60         # blind clarity + coherence only for the top N after first-pass scoring
+  literal_cues: [cliffhanger]   # ablation: removed from rules and redacted from prompts
+
+evaluation:
+  stability_enabled: false      # extra calls: run separately with `--stability` (main is cached)
+  stability_sample_frac: 0.10   # random sample re-scored a second time (plus the top 10)
+  stability_seed: 7
+  golden_k: 10
+  golden_iou: 0.5
+  ablation_enabled: true
+  ablations: [literal_cliffhanger, episode_end_prior]

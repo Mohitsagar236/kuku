@@ -1,0 +1,35 @@
+# --- CONFIDENTIAL: Kuku screenplay content must never be committed ---
+kuku/
+data/
+*.txt.bak
+outputs/
+llm_raw/
+**/llm_raw/
+*.sqlite
+*.sqlite3
+*.db
+# real show folders, if copied next to the repo
+I Married a Broken Soldier*/
+
+# secrets / env
+.env
+.env.*
+!.env.example
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# LLM response cache and quota state contain script text
+.cache/
+# editor-written golden labels
+golden.yaml

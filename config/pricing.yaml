@@ -1,0 +1,6 @@
+# USD per 1M tokens. FILL IN from your provider's current price page; unknown models cost 0 and
+# the run metadata marks cost as "price_known: false". Free-tier usage is genuinely $0.
+models:
+  mock-1: {in: 0.0, out: 0.0}
+  # gemini-2.5-flash: {in: ?, out: ?}
+  # claude-haiku-5-5: {in: ?, out: ?}

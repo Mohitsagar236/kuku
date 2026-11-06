@@ -1,0 +1,36 @@
+# Generic microdrama lexicon. No show-specific names. Lowercase; matched as whole words/phrases.
+action_verbs: [slap, slaps, slapped, punch, punches, shove, shoves, grab, grabs, drag, drags,
+  throw, throws, hurl, hurls, smash, smashes, shatter, shatters, collapse, collapses, faint,
+  faints, kneel, kneels, burst, bursts, kick, kicks, strike, strikes, stab, stabs, rip, rips,
+  snatch, snatches, spit, spits, lunge, lunges, draw, draws, pulls, flings, slams, topple]
+reveal_words: [reveal, reveals, revealed, secret, truth, confess, confesses, confession, admit,
+  admits, identity, discover, discovers, discovered, exposed, unmask, proof, evidence, ledger,
+  letter, pregnant, heir, alive, dead, poison, poisoned, poisoning, murder, murdered]
+betrayal_words: [betray, betrayed, betrayal, traitor, liar, lied, lie, cheat, cheated, abandon,
+  abandoned, deceive, deceived, disgrace, disgraced, humiliate, humiliated, divorce, banish,
+  banished, disown]
+threat_patterns:
+  - "\\bi(?:'ll| will| shall) (?:kill|destroy|ruin|make you|make sure|see you|burn|end)"
+  - "\\byou(?:'ll| will| shall) (?:regret|pay|die|never|not)"
+  - "\\b(?:or else|one more word|last warning|i swear)\\b"
+  - "\\b(?:kill|execute|hang|burn) (?:you|her|him|them)\\b"
+accusation_patterns:
+  - "\\byou(?:'re| are) (?:a |an |the |not |nothing|lying|mine|fired|dead|pathetic|\\w+ing)"
+  - "\\byou (?:lied|stole|betrayed|killed|poisoned|knew|dare|did this|were)\\b"
+  - "\\bhow dare\\b"
+  - "\\bwho (?:are you|did this|sent you)\\b"
+  - "\\bit was you\\b"
+  - "\\bi know (?:what|who|everything|your)\\b"
+  - "\\bget out\\b"
+intense_emotions: [furious, enraged, seething, livid, shocked, stunned, horrified, terrified,
+  panicked, screaming, shouting, sobbing, hysterical, desperate, venomous, menacing, dangerous,
+  cruel, mocking, defiant, trembling, anguished, devastated, shattered, betrayed, incredulous,
+  alarmed, fierce, vicious, scornful, explosive, heartbroken, gasping, pleading]
+cliffhanger_cues_strong: ["cliffhanger", "sting", "stinger", "cut to black", "cuts to black",
+  "cutting sharply to black", "abrupt cut", "smash cut", "freeze-frame", "freeze", "freezes"]
+cliffhanger_cues_weak: ["ominous", "thunderous", "swell", "swelling", "drone", "heartbeat", "gasp",
+  "hold on"]
+ending_action_words: [burst, bursts, flings, slams, freezes, collapses, gasps, steps forward,
+  turns, reaches, lunges, draws, appears, emerges, enters, door, footsteps, stares, discovers]
+resolution_phrases: ["thank you", "goodbye", "i forgive", "forgive you", "at last", "finally",
+  "it is over", "it's over", "we are safe", "all is well", "i love you too", "welcome home"]

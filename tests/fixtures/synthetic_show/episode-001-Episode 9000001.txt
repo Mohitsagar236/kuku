@@ -1,0 +1,73 @@
+EPISODE NUMBER: Episode 1
+EPISODE LOGLINE: Marta, a lighthouse keeper's daughter, is accused of stealing the family ledger by her brother Owen in front of the whole harbor.
+CONTINUITY NOTES: First episode. Establishes Marta, Owen and the missing ledger.
+
+--- SCRIPT START ---
+
+SCENE 01
+Scene heading: EXT. HARBOR DOCK – DAY
+Scene start: 00:00.00
+Scene end: 00:40.00
+
+Actions and dialogue:
+
+**CAMERA:**
+Start: (00:00.00) | End: (00:03.00)
+Wide shot of the harbor at dawn.
+
+**OWEN (Furious, Loud):**
+Start: (00:01.00) | End: (00:03.50)
+"You stole the ledger, Marta!"
+
+**ACTION:**
+Start: (00:03.50) | End: (00:05.00)
+Owen slaps the ledger out of Marta's hands. It splashes into the water.
+
+**MARTA (Shocked, Whispering):**
+Start: (00:05.50) | End: (00:07.50)
+"I never touched it."
+
+**SOUND FX:**
+Start: (00:07.50) | End: (00:09.00)
+Low string swell.
+
+**OWEN (Cold):**
+Start: (00:09.00) | End: (00:11.50)
+"Then why is your key in the lock?"
+
+**MARTA (V.O.) (Reflective, Hurt):**
+Start: (00:12.00) | End: (00:15.00)
+"That key was never mine to lose."
+
+**HARBORMASTER (O.S. / Continues) (Grave):**
+Start: (00:15.50) | End: (00:18.00)
+"Marta. Come with me. Now."
+
+SCENE 02
+Scene heading: INT. LIGHTHOUSE – NIGHT
+Scene start: 00:40.00
+Scene end: 01:20.00
+
+Actions and dialogue:
+
+**ACTION:**
+Start: (00:41.00) | End: (00:44.00)
+Marta climbs the spiral stairs, lantern shaking in her hand.
+
+**MARTA (Breathless):**
+Start: (00:44.50) | End: (00:47.00)
+"Who is up there?"
+
+**ACTION:**
+Start: (00:48.00) | End: (00:52.00)
+A shadow crosses the lamp room. The ledger lies open on the floor, its last page torn out.
+
+**OWEN (Whispering, Afraid):**
+Start: (00:53.00) | End: (00:56.00)
+"Don't read it. Please. Whatever you do, don't read the last page."
+
+**CAMERA:**
+Start: (01:15.00) | End: (01:20.00)
+Close-up on Marta's eyes as the lamp goes dark. Abrupt cut to black.
+
+--- SCRIPT END ---
