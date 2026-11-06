@@ -52,7 +52,7 @@ class MockProvider(LLMClient):
         if fault == "rate_limit":
             raise LLMRateLimitError("mock 429", retry_after=0.0)
         if fault == "transient":
-            raise LLMTransientError("mock 503")
+            raise LLMTransientError("mock 503", kind="http_5xx:503")
         if fault == "daily_quota":
             raise DailyQuotaExhausted("mock daily quota")
         noise = (n * 7 % 3 - 1) * self.jitter if self.jitter else 0
@@ -62,6 +62,9 @@ class MockProvider(LLMClient):
             "coherence": self._coherence,
             "rerank": self._rerank,
         }.get(req.task, lambda m, nz, f: {})(req.meta, noise, fault)
+        if fault == "no_ids":
+            for row in body.get("results", []):
+                row.pop("id", None)
         if self.upper_ids:
             for row in body.get("results", []):
                 row["id"] = str(row["id"]).upper()
@@ -108,15 +111,42 @@ class MockProvider(LLMClient):
         return {"results": items}
 
     def _clarity(self, meta: dict[str, Any], noise: int, fault: str | None) -> dict[str, Any]:
-        items = [
-            {
+        items = []
+        for c in meta["candidates"]:
+            item: dict[str, Any] = {
                 "id": c["label"],
                 "clarity": _clip(4 + _h(c["text"]) % 5 + noise),
                 "gap": "Unclear who the characters are." if _h(c["text"]) % 2 else "",
             }
-            for c in meta["candidates"]
-        ]
+            opts: list[str] = c.get("end_options") or []
+            if opts:
+                texts: dict[str, str] = c.get("end_texts", {})
+                best = c.get("current_end") or opts[-1]
+                best_v = self._unresolved(texts.get(best, "")) if best in texts else -9
+                for o in opts:  # the strongest unresolved cut wins; ties keep the present end
+                    v = self._unresolved(texts.get(o, ""))
+                    if v > best_v:
+                        best, best_v = o, v
+                if fault == "bad_end":
+                    best = "e99_b999"
+                item["end"] = best
+                item["cliff"] = _clip(3 + 2 * best_v)
+            items.append(item)
         return {"results": items}
+
+    @staticmethod
+    def _unresolved(text: str) -> int:
+        """Crude stand-in for a model: cut-off lines > questions > shouts; calm check-ins lose."""
+        t = text.strip().lower()
+        if t.endswith(("...", "\u2014", "-")):
+            return 3
+        if any(w in t for w in ("are you hurt", "thank", "goodbye", "it is over")):
+            return -1
+        if t.endswith("?"):
+            return 2
+        if t.endswith("!"):
+            return 1
+        return 0
 
     def _coherence(self, meta: dict[str, Any], noise: int, fault: str | None) -> dict[str, Any]:
         items = [

@@ -207,3 +207,24 @@ def test_quota_file_name_keeps_dotted_model_names_apart(tmp_path) -> None:
     a, b = limiter_path("m-3.5-flash-lite"), limiter_path("m-3.1-flash-lite")
     assert a != b
     assert a.name == "quota_ollama_m-3.5-flash-lite.json"
+
+
+def test_every_retry_is_recorded_with_its_error_kind() -> None:
+    llm, _ = _managed(MockProvider(faults=["transient", "rate_limit", "transient"]))
+    llm.phase = "main"
+    llm.complete(LLMRequest("s", "u", "score", meta={"candidates": []}))
+    r = llm.summary()["retries"]
+    assert r["count"] == 3 and r["by_kind"] == {"http_5xx:503": 2, "429_rate_limit": 1}
+    assert [e["attempt"] for e in r["events"]] == [1, 2, 3]
+    assert all(
+        e["task"] == "score" and e["phase"] == "main" and not e["gave_up"] for e in r["events"]
+    )
+    assert llm.summary()["latency_ms"]["max"] >= 0
+
+
+def test_a_retry_that_gives_up_is_recorded_too() -> None:
+    llm, _ = _managed(MockProvider(faults=["transient"] * 10), max_retries=2)
+    with pytest.raises(LLMTransientError):
+        llm.complete(LLMRequest("s", "u", "score", meta={"candidates": []}))
+    ev = llm.summary()["retries"]["events"]
+    assert len(ev) == 3 and ev[-1]["gave_up"] is True

@@ -39,7 +39,7 @@ def test_blind_clarity_never_sees_logline_or_continuity(show, cands, scfg) -> No
     for task in ("clarity", "coherence"):
         for text in by_task[task]:
             assert "ZZLOGLINE" not in text and "ZZNOTES" not in text, task
-            assert "e1_b" not in text  # no beat ids either: it is a stranger's view
+            # beat ids may appear now (end-point choice) but never any story context
     assert any("stranger" in t.lower() for t in by_task["clarity"])
 
 
@@ -267,3 +267,26 @@ def test_prompt_labels_match_the_label_the_model_must_return(show, cands, scfg) 
     req = next(r for r in spy.requests if r.task == "score")
     assert "\nc1 (" in req.user and "\nC1 (" not in req.user
     assert "own eligible lists" in req.system.lower() and "double quotes" in req.system
+
+
+def test_rows_without_ids_are_mapped_by_position_when_counts_match(show, cands, scfg) -> None:
+    """Live finding (gemini-3.5-flash-lite): the model dropped "id" from 5 of 6 result rows."""
+    scorer = Scorer(make_llm(SpyMock(faults=["no_ids"] * 40)), show, scfg)
+    out = scorer.score(cands)
+    assert all(s.main_ok for s in out.values())  # accepted without any rejection/retry
+    assert scorer.stats["score_id_missing_positional"] > 0
+    assert scorer.stats.get("score_rejected", 0) == 0
+
+
+def test_rows_without_ids_are_not_guessed_when_the_count_is_wrong(show, cands, scfg) -> None:
+    class Short(SpyMock):
+        def _score(self, meta, noise, fault):
+            out = super()._score(meta, noise, fault)
+            for r in out["results"]:
+                r.pop("id")
+            out["results"] = out["results"][:-1]  # one fewer row than asked: ambiguous
+            return out
+
+    scorer = Scorer(make_llm(Short()), show, scfg)
+    scorer.score(cands)
+    assert scorer.stats.get("score_rejected", 0) > 0  # refused to guess; asked again

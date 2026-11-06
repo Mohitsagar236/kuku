@@ -65,7 +65,20 @@ def run_batch(
         try:
             parsed = extract_json(resp.text)
             rows = parsed["results"] if isinstance(parsed, dict) else parsed
-            by_label = {str(r.get("id")).strip().lower(): r for r in rows if isinstance(r, dict)}
+            rows = [r for r in rows if isinstance(r, dict)]
+            by_label = {str(r.get("id")).strip().lower(): r for r in rows if r.get("id")}
+            # Some models drop "id" from result rows. If exactly as many id-less rows as unanswered
+            # candidates remain, map them by position (the order they were asked in).
+            idless = [r for r in rows if not r.get("id")]
+            open_labels = [
+                labels[j.cand_id].lower()
+                for j in pending
+                if labels[j.cand_id].lower() not in by_label
+            ]
+            if idless and len(idless) == len(open_labels):
+                for lab, r in zip(open_labels, idless, strict=True):
+                    by_label[lab] = {**r, "id": lab}  # the schema requires the id: supply it
+                bump(f"{task}_id_missing_positional")
         except (InvalidLLMOutput, KeyError, TypeError, AttributeError) as e:
             bump(f"{task}_invalid_json")
             for j in pending:

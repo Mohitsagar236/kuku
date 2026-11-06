@@ -10,7 +10,7 @@ from promo_common.schemas import Candidate, LLMScores, Promo, Show
 
 from ranking_service.build import FinalizeStats, finalize
 from ranking_service.config import RankingConfig
-from ranking_service.fusion import Fused, fuse
+from ranking_service.fusion import Fused, failed_gates, fuse
 from ranking_service.select import select
 
 RerankFn = Callable[[list[Fused]], dict[str, float] | None]
@@ -25,6 +25,8 @@ class RankResult:
     final_stats: FinalizeStats
     rerank_used: bool
     pre_rerank_top: list[str] = field(default_factory=list)
+    gated: dict[str, int] = field(default_factory=dict)
+    n_ranked: int = 0
 
 
 def apply_rerank(selected: list[Fused], ranks: dict[str, float], cfg: RankingConfig) -> list[Fused]:
@@ -49,7 +51,18 @@ def rank(
     rerank_fn: RerankFn | None = None,
 ) -> RankResult:
     fused = [fuse(c, scores.get(c.id), cfg) for c in cands]
-    selected, dropped = select(fused, show, cfg.selection)
+    gated: Counter[str] = Counter()
+    eligible: list[Fused] = []
+    for f in fused:
+        failed = failed_gates(f.llm, cfg)
+        if failed:
+            f.flags.append("gated:" + "+".join(failed))
+            gated["both" if len(failed) == 2 else failed[0]] += 1
+        else:
+            eligible.append(f)
+    selected, dropped = select(eligible, show, cfg.selection)
+    for k, v in gated.items():
+        dropped[f"gate_{k}"] += v
     pre = [f.cand.id for f in selected]
     used = False
     if rerank_fn is not None and len(selected) > 1:
@@ -58,4 +71,4 @@ def rank(
             selected = apply_rerank(selected, ranks, cfg)
             used = True
     promos, fstats = finalize(show, selected, cfg.trim.apply)
-    return RankResult(promos, fused, selected, dropped, fstats, used, pre)
+    return RankResult(promos, fused, selected, dropped, fstats, used, pre, dict(gated), len(cands))

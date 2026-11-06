@@ -35,6 +35,7 @@ class ReportInput:
     ablations: list[AblationInfo] = field(default_factory=list)
     baseline: RankResult | None = None
     cascade: dict[str, Any] = field(default_factory=dict)
+    rcfg: Any = None  # RankingConfig (formula + gates), optional
     stability: StabilityReport | None = None
     golden: GoldenReport | None = None
     partial: bool = False
@@ -121,6 +122,70 @@ def _why_moved(c: Candidate, s: LLMScores | None, up: bool) -> str:
     if up and s.why:
         out += f"; {s.why}"
     return out
+
+
+def _gates_and_refinement(r: ReportInput) -> list[str]:
+    res, g = r.result, (r.rcfg.gates if r.rcfg else None)
+    L = ["## 2b. Hard gates and end-point refinement", ""]
+    if g:
+        n = res.n_ranked or len(res.fused)
+        first = r.cascade.get("gate_hook_first_pass", 0)
+        gt = res.gated
+        L += [
+            f"- Gates on the LLM's own scores (never delivered below): hook < {g.min_hook:g}, "
+            f"cliffhanger < {g.min_cliffhanger:g} (cliffhanger = the end that is delivered). "
+            "Rule-only fallback candidates are not gated.",
+            f"- Removed before blind scoring (hook gate, first pass): {first} of {len(r.cands)} candidates",
+            f"- Removed after blind scoring + end refinement, of {n} fully scored: "
+            f"hook only {gt.get('hook', 0)}, cliffhanger only {gt.get('cliffhanger', 0)}, "
+            f"both {gt.get('both', 0)} (total {sum(gt.values())})",
+        ]
+    fs = res.final_stats
+    refined = [p for p in res.promos if p.end_refined]
+    L += [
+        f"- End refinement: {fs.ends_refined} delivered promo(s) had their end moved to a stronger "
+        f"unresolved cut; {fs.ends_refine_rejected} proposals were rejected by validation",
+    ]
+    for p in refined[:5]:
+        seg = p.segments[-1]
+        L.append(f"  - #{p.rank} ep{seg.episode}: end {p.original_end_ts} -> {seg.end_ts}, "
+                 f"duration {p.original_duration_s}s -> {p.total_duration_s}s")  # fmt: skip
+    return L + [""]
+
+
+def _formula_section(r: ReportInput) -> list[str]:
+    if r.rcfg is None:
+        return []
+    from ranking_service.fusion import attribution
+
+    f, w = r.rcfg.fusion, r.rcfg.fusion.weights
+    rule = llm = 0.0
+    for fu in r.result.selected:
+        a, b = attribution(fu, r.rcfg)
+        rule += a
+        llm += b
+    tot = rule + llm
+    # config-level share if every signal were LLM-scored
+    cfg_llm = (w.hook + w.cliffhanger + w.intensity) * f.llm_share + w.clarity * f.clarity_llm_share
+    rw = r.rcfg.rerank.weight
+    L = [
+        "## 2c. Final-score formula and rule vs LLM share",
+        "",
+        "```",
+        f"dim   = llm_share * LLM + (1 - llm_share) * rule    (hook/cliffhanger/intensity: {f.llm_share:g}; clarity: {f.clarity_llm_share:g})",
+        f"score = {w.hook:g}*hook + {w.cliffhanger:g}*cliffhanger + {w.clarity:g}*clarity + {w.intensity:g}*intensity - {f.spoiler_penalty_per_point:g}*spoiler_risk",
+        f"stitched: score *= {f.stitched_base:g} + 0.03*coherence",
+        f"shortlist (top {r.rcfg.rerank.pool}): final = {1 - rw:g}*score + {rw:g}*listwise-rerank score (LLM)",
+        "```",
+        f"- By construction the LLM contributes {100 * cfg_llm:.0f}% of the absolute score (rule {100 * (1 - cfg_llm):.0f}%), "
+        f"plus 100% of the spoiler penalty and of the rerank blend.",
+        f"- Measured on this run's selected promos (before rerank): rule {100 * rule / tot:.0f}% / LLM {100 * llm / tot:.0f}%"
+        if tot
+        else "- (no selected promos)",
+        f"- After the rerank blend, the rule signals' share of the final score is about {100 * (1 - rw) * (1 - cfg_llm):.0f}%.",
+        "",
+    ]
+    return L
 
 
 def _baseline_section(r: ReportInput) -> list[str]:
@@ -211,6 +276,9 @@ def build_report(r: ReportInput) -> str:
         f"- Dropped by selection: {dict(r.result.dropped) or 'none'}",
         "",
     ]  # fmt: skip
+
+    L += _gates_and_refinement(r)
+    L += _formula_section(r)
 
     # 3. distributions
     L += ["## 3. Score distributions", "", "min / q1 / median / q3 / max", "",

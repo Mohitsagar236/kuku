@@ -25,12 +25,10 @@ SPOILER RISK (s): how much of the story's resolution or major twist the clip giv
 HARD RULES
 - Refer to beats ONLY by the IDs given (like e15_b042). Never quote script text. Never write timestamps.
 - "hook" MUST be one of the candidate's hook-eligible IDs. "cliff" MUST be one of its cliff-eligible IDs.
-- Optional trim: "ts" = an ID inside the candidate where the clip should START instead (only if the
-  first beats are dead weight); "te" = an ID where it should END instead. Omit both when no trim helps.
-  A trim must keep the hook in the first 3 seconds.
 - Every candidate has its OWN eligible lists, even when candidates share beats. Copy the "hook" id
   from THAT candidate's hook-eligible list and the "cliff" id from ITS cliff-eligible list; never
   reuse another candidate's choice. Use the candidate label exactly as written (for example c3).
+- EVERY result row MUST include its "id" (the candidate label).
 - "why": ONE sentence, at most 25 words, plain language. Never use double quotes or line breaks
   inside "why" (it must stay valid JSON).
 - Reply with JSON only, exactly this shape, one result per candidate:

@@ -25,6 +25,7 @@ class LLMSettings(BaseSettings):
     budget_calls: int | None = Field(None, validation_alias=_a("LLM_BUDGET_CALLS"))
     cache_dir: str = Field(".cache/llm", validation_alias=_a("LLM_CACHE_DIR"))
     thinking_budget: int | None = Field(None, validation_alias=_a("LLM_THINKING_BUDGET"))
+    thinking_level: str | None = Field(None, validation_alias=_a("LLM_THINKING_LEVEL"))
 
     gemini_api_key: str | None = Field(
         None, validation_alias=_a("GEMINI_API_KEY", "GOOGLE_API_KEY")

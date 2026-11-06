@@ -25,6 +25,8 @@ class FinalizeStats:
     validation_failures: list[tuple[str, list[str]]] = field(default_factory=list)
     trims_applied: int = 0
     trims_rejected: int = 0
+    ends_refined: int = 0
+    ends_refine_rejected: int = 0
 
 
 def _moment(show: Show, beat: Beat) -> Moment:
@@ -130,9 +132,29 @@ def finalize(
                 stats.trims_applied += 1
             elif llm and (llm.trim_start_beat_id or llm.trim_end_beat_id) and c.kind == "single":
                 stats.trims_rejected += 1
+        refined = False
+        original = c.segments[0] if c.kind == "single" else None
+        if (
+            not trimmed and llm is not None and llm.end_changed and llm.end_beat_id
+            and c.kind == "single" and original is not None
+        ):  # fmt: skip
+            eb = beats.get(llm.end_beat_id)
+            new_seg = (
+                Segment(episode_number=original.episode_number, start_s=original.start_s,
+                        end_s=eb.end_s, start_beat_id=original.start_beat_id, end_beat_id=eb.id)
+                if eb is not None and eb.end_s > original.start_s else None
+            )  # fmt: skip
+            # start is kept; code re-validates the cut and recomputes the duration (20-60 s etc.)
+            if new_seg is not None and not validate_segments(show, [new_seg]):
+                segs, refined = [new_seg], True
+                stats.ends_refined += 1
+            else:
+                stats.ends_refine_rejected += 1
         errors = validate_segments(show, segs)
         hook_id = llm.hook_beat_id if llm and llm.main_ok else c.signals.hook_beat_id
         cliff_id = llm.cliff_beat_id if llm and llm.main_ok else c.signals.cliff_beat_id
+        if refined and llm is not None:
+            cliff_id = llm.end_beat_id  # the delivered cut is the new cliffhanger moment
         hook, cliff = beats.get(hook_id or ""), beats.get(cliff_id or "")
         if hook is None or cliff is None:
             errors.append("missing_hook_or_cliff_beat")
@@ -172,6 +194,10 @@ def finalize(
                 rule_score=c.rule_score, final_score=f.blended, confidence=f.confidence,
                 risks=_risks(f), flags=f.flags, trim_applied=trimmed,
                 ends_at_episode_end=_ends_at_episode_end(show, segs),
+                end_refined=refined,
+                original_end_ts=format_timecode(original.end_s) if refined and original else None,
+                original_duration_s=round(original.end_s - original.start_s, 2)
+                if refined and original else None,
             )
         )  # fmt: skip
     return promos, stats

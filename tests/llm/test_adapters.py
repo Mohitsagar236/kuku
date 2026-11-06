@@ -249,4 +249,74 @@ def test_gemini_default_model_and_thinking_policy(monkeypatch) -> None:
 
     assert DEFAULT_MODELS["gemini"] == "gemini-3.5-flash-lite"
     assert mk("gemini-2.5-flash").thinking_budget == 0  # the 2.5 family thinks by default
-    assert mk("gemini-3.5-flash-lite").thinking_budget is None  # nothing sent: model rejects it
+    assert mk("gemini-3.5-flash-lite").thinking_budget is None  # budget is rejected by this model
+    assert mk("gemini-3.5-flash-lite").thinking_level == "minimal"  # the 3.x control instead
+    assert mk("gemini-3.5-flash").thinking_level == "minimal"
+    assert mk("gemini-3.1-pro-preview").thinking_level is None  # Pro thinks by design
+
+
+@pytest.mark.parametrize(
+    ("make", "kind"),
+    [
+        (lambda r: httpx.Response(429, text="slow"), "429_rate_limit"),
+        (lambda r: httpx.Response(503, text="busy"), "http_5xx:503"),
+        (lambda r: httpx.Response(500, text="oops"), "http_5xx:500"),
+        (lambda r: httpx.Response(408, text="t"), "http_408"),
+    ],
+)
+def test_every_transient_error_carries_its_kind(make, kind: str) -> None:
+    p = OpenAICompatProvider("m", "K", transport=transport(make))
+    with pytest.raises(LLMTransientError) as e:
+        p.complete(REQ)
+    assert e.value.kind == kind
+
+
+def test_timeout_and_transport_kinds() -> None:
+    def boom(r: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("t")
+
+    def refused(r: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("c")
+
+    with pytest.raises(LLMTransientError) as e1:
+        OpenAICompatProvider("m", "K", transport=transport(boom)).complete(REQ)
+    with pytest.raises(LLMTransientError) as e2:
+        OpenAICompatProvider("m", "K", transport=transport(refused)).complete(REQ)
+    assert e1.value.kind == "timeout" and e2.value.kind == "transport:ConnectError"
+
+
+def test_gemini_adds_output_headroom_so_thinking_tokens_cannot_truncate_json() -> None:
+    """Live finding: gemini-3.5-flash used ~1,900 hidden thinking tokens = the whole limit."""
+    seen = {}
+
+    def h(r: httpx.Request) -> httpx.Response:
+        seen["cfg"] = json.loads(r.content)["generationConfig"]
+        return httpx.Response(
+            200,
+            json={"candidates": [{"content": {"parts": [{"text": "{}"}]}}], "usageMetadata": {}},
+        )
+
+    g = GeminiProvider("gemini-3.5-flash", "K", transport=transport(h))
+    g.thinking_level = "minimal"
+    g.complete(LLMRequest(system="s", user="u", max_tokens=300))
+    assert seen["cfg"]["maxOutputTokens"] == 300 + g.output_headroom > 300
+    assert seen["cfg"]["thinkingConfig"] == {"thinkingLevel": "minimal"}
+
+
+def test_gemini_drops_thinking_level_too_if_rejected() -> None:
+    seen = []
+
+    def h(r: httpx.Request) -> httpx.Response:
+        cfg = json.loads(r.content)["generationConfig"]
+        seen.append(cfg)
+        if "thinkingConfig" in cfg:
+            err = {"status": "INVALID_ARGUMENT", "message": "Request contains an invalid argument."}
+            return httpx.Response(400, json={"error": err})
+        return httpx.Response(
+            200,
+            json={"candidates": [{"content": {"parts": [{"text": "{}"}]}}], "usageMetadata": {}},
+        )
+
+    g = GeminiProvider("gemini-x", "K", transport=transport(h))
+    g.thinking_level = "minimal"
+    assert g.complete(REQ).text == "{}" and "thinkingConfig" not in seen[-1]

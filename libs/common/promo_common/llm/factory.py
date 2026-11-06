@@ -49,10 +49,15 @@ def build_client(s: LLMSettings) -> LLMClient:
         # Gemini 2.5 Flash "thinks" by default and those tokens count against the output limit,
         # which can truncate JSON: switch it off there. Other models (3.x) either do not think by
         # default or use a different control, so nothing is sent unless LLM_THINKING_BUDGET is set.
+        low = model.lower()
         if s.thinking_budget is not None:
             g.thinking_budget = s.thinking_budget
-        elif "2.5-flash" in model:
-            g.thinking_budget = 0
+        elif s.thinking_level:
+            g.thinking_level = s.thinking_level
+        elif "2.5-flash" in low:
+            g.thinking_budget = 0  # 2.5 control
+        elif "flash" in low and "pro" not in low:
+            g.thinking_level = "minimal"  # 3.x control; the adapter drops it if a model rejects it
         return g
     if name == "groq":
         return GroqProvider(model, key, s.timeout_s)

@@ -65,6 +65,7 @@ class ManagedLLM:
         self.temperature = temperature
         self.phase = ""  # label stamped on every call (main / ablation / stability ...)
         self.records: list[CallRecord] = []
+        self.retry_events: list[dict[str, Any]] = []
         self.cache_hits: dict[str, int] = defaultdict(int)
         self._lock = threading.Lock()
         self._rng = random.Random(0)
@@ -95,7 +96,14 @@ class ManagedLLM:
                 raise
             except LLMTransientError as e:
                 attempt += 1
-                if attempt > self.max_retries:
+                kind = getattr(e, "kind", "transient")
+                gave_up = attempt > self.max_retries
+                with self._lock:
+                    self.retry_events.append(
+                        {"task": req.task, "phase": self.phase, "attempt": attempt,
+                         "kind": kind, "gave_up": gave_up}
+                    )  # fmt: skip
+                if gave_up:
                     raise
                 wait = getattr(e, "retry_after", None)
                 if wait is None:
@@ -107,6 +115,7 @@ class ManagedLLM:
                         "task": req.task,
                         "attempt": attempt,
                         "wait_s": round(wait, 2),
+                        "error_kind": kind,
                         "error": f"{type(e).__name__}: {str(e)[:100]}",
                     },
                 )
@@ -162,7 +171,22 @@ class ManagedLLM:
             p["calls"] += 1
             p["tokens_in"] += r.tokens_in
             p["tokens_out"] += r.tokens_out
+        lat = sorted(r.latency_ms for r in self.records)
+        by_kind: dict[str, int] = defaultdict(int)
+        for ev in self.retry_events:
+            by_kind[ev["kind"]] += 1
         return {
+            "latency_ms": {
+                "mean": round(sum(lat) / len(lat), 1) if lat else 0.0,
+                "p50": round(lat[len(lat) // 2], 1) if lat else 0.0,
+                "p95": round(lat[min(len(lat) - 1, int(len(lat) * 0.95))], 1) if lat else 0.0,
+                "max": round(lat[-1], 1) if lat else 0.0,
+            },
+            "retries": {
+                "count": len(self.retry_events),
+                "by_kind": dict(by_kind),
+                "events": list(self.retry_events),
+            },
             "truncated_calls": sum(r.truncated for r in self.records),
             "by_phase": {k: dict(v) for k, v in by_phase.items()},
             "provider": self.provider,

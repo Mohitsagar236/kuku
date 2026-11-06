@@ -26,6 +26,17 @@ class ClarityItem(BaseModel):
     gap: str = ""
 
 
+class RefineItem(BaseModel):
+    """Blind clarity + the clip's best end point, in one answer."""
+
+    model_config = ConfigDict(extra="ignore")
+    id: str
+    clarity: int = Field(ge=0, le=10)
+    end: str | None = None
+    cliff: int | None = Field(default=None, ge=0, le=10)
+    gap: str = ""
+
+
 class CoherenceItem(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str

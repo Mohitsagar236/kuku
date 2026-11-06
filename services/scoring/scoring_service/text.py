@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
+from typing import Any
 
 from promo_common.schemas import Beat, BeatType
 
@@ -47,6 +48,27 @@ def blind_text(v: CandView, red: Redactor) -> str:
     for sv in v.segs:
         parts.append("\n".join(f"{_who(b)}{red(b.text)}" for b in sv.beats))
     return "\n--- CUT ---\n".join(parts)
+
+
+def refine_text(v: CandView, ids: IdMap, show: Any, red: Redactor) -> str:
+    """Blind view for end-point choice: the clip from its start through the latest legal end.
+
+    Lines carry a beat id and the seconds since the clip start (no episode, no logline). The
+    present end is marked; LEGAL END POINTS lists the ids the clip may end right after.
+    """
+    sv = v.segs[0]
+    ep = show.episode(sv.episode)
+    horizon = max((ids.to_beat[o].end_s for o in v.end_options), default=sv.end)
+    lines = []
+    for b in ep.beats:
+        if b.type is BeatType.CAMERA or b.type is BeatType.OTHER:
+            continue
+        if sv.start - 1e-6 <= b.start_s < max(horizon, sv.end) - 1e-6:
+            mark = "   <== present end" if ids.to_short[b.id] == v.current_end else ""
+            lines.append(
+                f"[{ids.to_short[b.id]} +{b.start_s - sv.start:.1f}s] {_who(b)}{red(b.text)}{mark}"
+            )
+    return "\n".join(lines) + "\nLEGAL END POINTS: " + ", ".join(v.end_options)
 
 
 def candidate_header(label: str, v: CandView, ids: IdMap) -> str:

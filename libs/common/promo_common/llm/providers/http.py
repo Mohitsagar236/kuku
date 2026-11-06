@@ -56,9 +56,12 @@ class HttpProvider(LLMClient):
         try:
             r = self._http.post(url, headers=headers, json=body)
         except httpx.TimeoutException as e:
-            raise LLMTransientError(f"{self.provider}: timeout") from e
+            raise LLMTransientError(f"{self.provider}: timeout", kind="timeout") from e
         except httpx.TransportError as e:
-            raise LLMTransientError(f"{self.provider}: transport error: {type(e).__name__}") from e
+            raise LLMTransientError(
+                f"{self.provider}: transport error: {type(e).__name__}",
+                kind=f"transport:{type(e).__name__}",
+            ) from e
         if r.status_code == 200:
             data: dict[str, Any] = r.json()
             return data
@@ -75,7 +78,8 @@ class HttpProvider(LLMClient):
         if r.status_code in (401, 403):
             raise LLMAuthError(f"{self.provider}: auth failed ({r.status_code})")
         if r.status_code >= 500 or r.status_code == 408:
-            raise LLMTransientError(f"{self.provider}: HTTP {r.status_code}")
+            kind = "http_408" if r.status_code == 408 else f"http_5xx:{r.status_code}"
+            raise LLMTransientError(f"{self.provider}: HTTP {r.status_code}", kind=kind)
         raise BadRequest(text)
 
     def _adapt(self, body: str) -> bool:

@@ -10,6 +10,7 @@ from typing import Any
 
 from evaluation_service import AblationInfo, ReportInput, build_report
 from promo_common.schemas import Promo
+from ranking_service import RankingConfig
 
 from promo_finder_cli.pipeline import BASELINE_DIR, RunResult, Variant
 
@@ -43,7 +44,7 @@ def write_csv(path: Path, promos: list[Promo]) -> None:
         cols += [f"seg{i}_episode", f"seg{i}_start", f"seg{i}_end"]
     cols += ["hook_ts", "hook_speaker", "hook_text", "cliffhanger_ts", "cliffhanger_speaker",
              "cliffhanger_text", "why", "hook_score", "cliffhanger_score", "clarity_score",
-             "intensity_score", "spoiler_risk", "coherence", "risks", "flags", "trim_applied"]  # fmt: skip
+             "intensity_score", "spoiler_risk", "coherence", "risks", "flags", "trim_applied", "end_refined", "original_end"]  # fmt: skip
     with path.open("w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=cols)
         w.writeheader()
@@ -58,6 +59,7 @@ def write_csv(path: Path, promos: list[Promo]) -> None:
                 "hook_score": p.scores.hook, "cliffhanger_score": p.scores.cliffhanger,
                 "clarity_score": p.scores.clarity, "intensity_score": p.scores.intensity,
                 "spoiler_risk": p.scores.spoiler_risk, "coherence": p.scores.coherence,
+                "end_refined": p.end_refined, "original_end": p.original_end_ts or "",
                 "risks": " | ".join(p.risks), "flags": " | ".join(p.flags), "trim_applied": p.trim_applied,
             }  # fmt: skip
             for i, s in enumerate(p.segments, start=1):
@@ -144,7 +146,9 @@ def write_all(run: RunResult) -> Path:
         gen_summary={"windows": main.gen.total_windows},
         ablations=[AblationInfo(s.name, s.label, v.result, v.info) for s, v in run.ablations],
         baseline=run.baseline.result if run.baseline else None,
-        cascade={"stage2": main.info.get("ranked_candidates")},
+        cascade={"stage2": main.info.get("ranked_candidates"),
+                 "gate_hook_first_pass": main.info.get("gate_hook_first_pass", 0)},
+        rcfg=RankingConfig(**run.configs["ranking"]),
         stability=run.stability, golden=run.golden, partial=run.partial,
     ))  # fmt: skip
     (out / "quality_report.md").write_text(report)
@@ -168,6 +172,12 @@ def write_all(run: RunResult) -> Path:
         "measured_output_tokens_per_scored_candidate": round(main_score_out / live, 1),
         "scoring_stats": dict(st),
         "partial": run.partial,
+        "gates": {"dropped": dict(main.result.dropped), "gated": main.result.gated,
+                  "hook_first_pass": main.info.get("gate_hook_first_pass", 0)},
+        "end_refinement": {"refined": main.result.final_stats.ends_refined,
+                           "rejected": main.result.final_stats.ends_refine_rejected},
+        "latency_ms": summary["latency_ms"],
+        "retries": summary["retries"],
         "cascade": {"top": run.configs["scoring"]["cascade_top"],
                     "fully_scored": main.info.get("ranked_candidates"),
                     "first_pass_scored": len(main.cands)},  # fmt: skip

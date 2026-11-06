@@ -48,7 +48,15 @@ class ConfidenceCfg(BaseModel):
     no_llm: float = 0.25
 
 
+class Gates(BaseModel):
+    """Hard gates on the LLM's own scores: below the threshold a candidate is never delivered."""
+
+    min_hook: float = 5.0
+    min_cliffhanger: float = 5.0
+
+
 class RankingConfig(BaseModel):
+    gates: Gates = Gates()
     fusion: Fusion = Fusion()
     selection: Selection = Selection()
     rerank: RerankCfg = RerankCfg()

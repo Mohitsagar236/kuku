@@ -9,6 +9,7 @@ check-confidential SHOW_DIR     fail if tracked repo files contain script text
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
@@ -20,10 +21,11 @@ from promo_common.errors import IngestionError
 from promo_common.llm import LLMAuthError, LLMSettings
 from promo_common.logging import setup_logging
 
+from promo_finder_cli.compare import compare_runs
 from promo_finder_cli.outputs import write_all
 from promo_finder_cli.package import package_outputs
 from promo_finder_cli.pipeline import RunInterrupted, RunOptions, run_pipeline
-from promo_finder_cli.smoke import smoke_report
+from promo_finder_cli.smoke import smoke_report, smoke_summary
 
 
 def _add_llm_flags(p: argparse.ArgumentParser) -> None:
@@ -63,6 +65,9 @@ def _execute(args: argparse.Namespace, opts: RunOptions, settings: LLMSettings) 
     out = write_all(run)
     if opts.mode == "smoke":
         text, ok = smoke_report(run)
+        (out / "smoke_summary.json").write_text(
+            json.dumps(smoke_summary(run), indent=2, default=str)
+        )
         print(text)
         print(f"outputs: {out}  (CONFIDENTIAL: contains script quotes; do not commit)")
         return 0 if ok else 4
@@ -98,6 +103,10 @@ def main(argv: list[str] | None = None) -> int:
     k.add_argument("--show", help="show slug if several exist")
     k.add_argument("--include-smoke", action="store_true")
 
+    cm = sub.add_parser("compare", help="side-by-side of two smoke runs (e.g. two models)")
+    cm.add_argument("run_a")
+    cm.add_argument("run_b")
+
     c = sub.add_parser("check-confidential", help="scan files git would commit for script text")
     c.add_argument("show_dir", nargs="?", help="input folder (default: $PF_REAL_SHOW_DIR)")
     c.add_argument("--root", default=".")
@@ -116,6 +125,16 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         print(f"{dest}  ({dest.stat().st_size / 1024:.0f} KB)")
         print("CONFIDENTIAL: upload privately only. This archive is git-ignored; never commit it.")
+        return 0
+
+    if args.cmd == "compare":
+        try:
+            text, dest = compare_runs(Path(args.run_a), Path(args.run_b))
+        except FileNotFoundError as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 2
+        print(text)
+        print(f"\nsaved: {dest}  (CONFIDENTIAL: contains script quotes; do not commit)")
         return 0
 
     if args.cmd == "check-confidential":

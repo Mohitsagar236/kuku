@@ -23,8 +23,14 @@ from pydantic import ValidationError
 from scoring_service.batch import Job, run_batch
 from scoring_service.config import ScoringConfig
 from scoring_service.ids import CandView, IdMap, build_view
-from scoring_service.schemas import ClarityItem, CoherenceItem, ScoreItem, cap_words
-from scoring_service.text import beat_line, blind_text, candidate_header, make_redactor
+from scoring_service.schemas import CoherenceItem, RefineItem, ScoreItem, cap_words
+from scoring_service.text import (
+    beat_line,
+    blind_text,
+    candidate_header,
+    make_redactor,
+    refine_text,
+)
 
 log = logging.getLogger(__name__)
 
@@ -108,6 +114,13 @@ class Scorer:
             lines.append(f"Episode {n}: {self.red(ep.logline)}{self.red(extra)}")
         return "\n".join(lines)
 
+    def _view(self, c: Candidate) -> CandView:
+        k = self.cfg
+        return build_view(
+            c, self.show, self.ids, k.hook_window_s, k.cliff_window_s,
+            k.min_total_s, k.max_total_s, k.end_spacing_s, refine=k.refine_ends,
+        )  # fmt: skip
+
     # -- main judge ---------------------------------------------------------------------
     def _score_key(self, v: CandView) -> str:
         body = candidate_header("c", v, self.ids) + "\n".join(
@@ -177,7 +190,52 @@ class Scorer:
         }
         return LLMRequest(system, user, task, 60 * len(jobs) + 150, meta=meta)
 
-    def _blind_validate(self, model: type[ClarityItem] | type[CoherenceItem]) -> Callable[..., Any]:
+    def _refine_blob(self, v: CandView) -> str:
+        """Exactly what the stranger sees for this clip (also the cache key material)."""
+        if v.end_options:
+            return refine_text(v, self.ids, self.show, self.red)
+        return blind_text(v, self.red)
+
+    def _refine_render(self, jobs: list[Job], labels: dict[str, str], note: str) -> LLMRequest:
+        blocks, cands_meta = [], []
+        for j in jobs:
+            v, lab = j.view, labels[j.cand_id]
+            kind = "" if v.end_options else " (stitched)" if v.cand.kind == "stitched" else ""
+            blob = self._refine_blob(v)
+            blocks.append(f"=== {lab}{kind} ===\n{blob}")
+            cands_meta.append({
+                "label": lab, "text": blob, "end_options": list(v.end_options),
+                "current_end": v.current_end,
+                "end_texts": {self.ids.to_short[b.id]: b.text for b in
+                              (self.ids.to_beat[o] for o in v.end_options)},
+            })  # fmt: skip
+        system, user = self.p_clarity.render(candidates="\n\n".join(blocks), retry_note=note)
+        return LLMRequest(
+            system, user, "clarity", 70 * len(jobs) + 200, meta={"candidates": cands_meta}
+        )
+
+    def _refine_validate(
+        self, row: dict[str, Any], job: Job
+    ) -> tuple[dict[str, Any] | None, str | None]:
+        try:
+            item = RefineItem(**row)
+        except (ValidationError, TypeError) as e:
+            return None, f"schema: {str(e).splitlines()[0][:80]}"
+        d = item.model_dump()
+        d["gap"] = cap_words(item.gap, self.cfg.max_words_gap)
+        opts = job.view.end_options
+        if opts:
+            end = (item.end or "").strip().lower()
+            if end not in opts:
+                return None, f"end id {item.end} is not one of this clip's legal end points"
+            if item.cliff is None:
+                return None, "cliff score missing"
+            d["end"] = end
+        else:
+            d["end"], d["cliff"] = None, None
+        return d, None
+
+    def _blind_validate(self, model: type[CoherenceItem]) -> Callable[..., Any]:
         def validate(row: dict[str, Any], job: Job) -> tuple[dict[str, Any] | None, str | None]:
             try:
                 item = model(**row)
@@ -234,12 +292,7 @@ class Scorer:
         expensive-per-candidate part. Candidates outside it get ``stage2=False``.
         """
         self.bypass_cache = bypass_cache
-        views = {
-            c.id: build_view(
-                c, self.show, self.ids, self.cfg.hook_window_s, self.cfg.cliff_window_s
-            )
-            for c in cands
-        }
+        views = {c.id: self._view(c) for c in cands}
         errs: dict[str, list[str]] = {}
         main: dict[str, dict[str, Any]] = {}
         clar: dict[str, dict[str, Any]] = {}
@@ -281,15 +334,21 @@ class Scorer:
         todo = []
         for cid in _stable_order(views2):
             v = views[cid]
-            key = self._key("clarity", self.p_clarity.sha, blind_text(v, self.red))
+            key = self._key("clarity", self.p_clarity.sha, self._refine_blob(v))
             hit = self._cached("clarity", key)
             if hit:
                 clar[cid] = hit["result"]
             else:
                 todo.append(Job(cid, v, key))
-        render_c = lambda j, lb, n: self._blind_render("clarity", self.p_clarity, j, lb, n)  # noqa: E731
-        self._judge("clarity", todo, list(_chunks(todo, self.cfg.clarity_batch)), render_c,
-                    self._blind_validate(ClarityItem), clar, errs)  # fmt: skip
+        self._judge(
+            "clarity",
+            todo,
+            list(_chunks(todo, self.cfg.clarity_batch)),
+            self._refine_render,
+            self._refine_validate,
+            clar,
+            errs,
+        )
 
         # 3. stitched coherence
         todo = []
@@ -332,6 +391,10 @@ class Scorer:
             s.why = m.get("why", "")
         if cl:
             s.clarity_ok, s.clarity, s.clarity_gap = True, cl["clarity"], cl.get("gap", "")
+            if cl.get("end"):
+                beat = self.ids.to_beat[cl["end"]]
+                s.end_beat_id, s.end_cliff = beat.id, cl.get("cliff")
+                s.end_changed = abs(beat.end_s - c.segments[0].end_s) > 1e-3
         if c.kind == "stitched":
             s.coherence_ok = bool(co)
             if co:
@@ -340,7 +403,7 @@ class Scorer:
 
     def digest(self, cand: Candidate, llm: LLMScores | None) -> str:
         """Compact text for the cross-show rerank: opening, ending and the one-line note."""
-        v = build_view(cand, self.show, self.ids, self.cfg.hook_window_s, self.cfg.cliff_window_s)
+        v = self._view(cand)
 
         def short(b: Any) -> str:
             who = f"{b.speaker}: " if b.speaker else ""

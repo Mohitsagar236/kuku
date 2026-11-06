@@ -8,12 +8,20 @@ class LLMError(Exception):
 
 
 class LLMTransientError(LLMError):
-    """Timeouts, 5xx, connection resets: retried with exponential backoff."""
+    """Timeouts, 5xx, connection resets: retried with exponential backoff.
+
+    ``kind`` says which one, so every retry can be recorded: ``timeout``, ``transport:<Type>``,
+    ``http_5xx:<code>``, ``http_408`` or ``429_rate_limit``.
+    """
+
+    def __init__(self, message: str, kind: str = "transient") -> None:
+        super().__init__(message)
+        self.kind = kind
 
 
 class LLMRateLimitError(LLMTransientError):
     def __init__(self, message: str, retry_after: float | None = None) -> None:
-        super().__init__(message)
+        super().__init__(message, kind="429_rate_limit")
         self.retry_after = retry_after
 
 

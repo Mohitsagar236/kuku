@@ -10,6 +10,12 @@ class GeminiProvider(HttpProvider):
     provider = "gemini"
     base_url = "https://generativelanguage.googleapis.com/v1beta"
     thinking_budget: int | None = None  # 0 = no thinking tokens (they eat max output tokens)
+    thinking_level: str | None = (
+        None  # Gemini 3.x control ("minimal" ...); budget is the 2.5 control
+    )
+    output_headroom = (
+        2048  # thinking tokens count against maxOutputTokens: never let them cut the JSON
+    )
     send_thinking = True
 
     def _adapt(self, body: str) -> bool:
@@ -18,7 +24,7 @@ class GeminiProvider(HttpProvider):
         # no hint. Drop the optional thinking config first, then fall back to the temperature rule.
         if (
             self.send_thinking
-            and self.thinking_budget is not None
+            and (self.thinking_budget is not None or self.thinking_level)
             and ("thinking" in low or "invalid argument" in low or "invalid_argument" in low)
         ):
             self.send_thinking = False
@@ -26,13 +32,16 @@ class GeminiProvider(HttpProvider):
         return super()._adapt(body)
 
     def _send(self, req: LLMRequest, with_temperature: bool) -> dict[str, Any]:
-        gen: dict[str, Any] = {"maxOutputTokens": req.max_tokens}
+        gen: dict[str, Any] = {"maxOutputTokens": req.max_tokens + self.output_headroom}
         if with_temperature:
             gen["temperature"] = req.temperature
         if req.json_mode:
             gen["responseMimeType"] = "application/json"
-        if self.thinking_budget is not None and self.send_thinking:
-            gen["thinkingConfig"] = {"thinkingBudget": self.thinking_budget}
+        if self.send_thinking:
+            if self.thinking_budget is not None:
+                gen["thinkingConfig"] = {"thinkingBudget": self.thinking_budget}
+            elif self.thinking_level:
+                gen["thinkingConfig"] = {"thinkingLevel": self.thinking_level}
         body = {
             "systemInstruction": {"parts": [{"text": req.system}]},
             "contents": [{"role": "user", "parts": [{"text": req.user}]}],

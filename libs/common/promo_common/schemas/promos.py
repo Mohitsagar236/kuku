@@ -62,4 +62,7 @@ class Promo(BaseModel):
     flags: list[str] = Field(default_factory=list)
     trim_applied: bool = False
     ends_at_episode_end: bool = False
+    end_refined: bool = False  # the LLM moved the end to a stronger unresolved cut
+    original_end_ts: str | None = None
+    original_duration_s: float | None = None
     status: Literal["proposed", "approved", "rejected", "adjusted"] = "proposed"
