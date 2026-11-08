@@ -25,7 +25,7 @@ def story_show():
         for i in range(7)
     ]
     specs += [
-        (D, 25.5, SHOUT_END, "He's only one man!", "BEN"),
+        (D, 25.5, SHOUT_END, "Lock every gate now!", "BEN"),
         (D, 29.0, PRESENT_END, "Are you hurt?", "CAL"),
         (D, 32.5, 35.0, line_text(11, "ref"), "ANA"),
         (D, 35.5, 37.5, line_text(12, "ref"), "BEN"),

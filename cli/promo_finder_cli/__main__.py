@@ -112,6 +112,8 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("show_dir", nargs="?", help="input folder (default: $PF_REAL_SHOW_DIR)")
     c.add_argument("--root", default=".")
     c.add_argument("--words", type=int, default=8, help="shingle length in words")
+    c.add_argument("--quote-words", type=int, default=4,
+                   help="flag quoted spans sharing this many words with a dialogue line (0 = off)")  # fmt: skip
 
     args = ap.parse_args(argv)
     setup_logging(
@@ -149,17 +151,26 @@ def main(argv: list[str] | None = None) -> int:
         show = load_show(src)
         texts = [b.text for e in show.episodes for b in e.beats]
         texts += [e.logline for e in show.episodes] + [e.continuity_notes for e in show.episodes]
+        dialogue = [b.text for e in show.episodes for b in e.beats if b.type.value == "dialogue"]
+        qn = args.quote_words
         findings = scan_repo(
-            Path(args.root).resolve(), build_shingles(texts, args.words), args.words
+            Path(args.root).resolve(),
+            build_shingles(texts, args.words),
+            args.words,
+            quote_shingles=build_shingles(dialogue, qn) if qn > 0 else None,
+            quote_n=qn,
+        )
+        checked = f"{args.words}-word passages" + (
+            f", quoted {qn}+-word dialogue" if qn > 0 else ""
         )
         if findings:
             print(
-                f"FAIL: {len(findings)} passage(s) from the input appear in files git would commit:"
+                f"FAIL: {len(findings)} finding(s) in files git would commit ({checked}; PDFs included):"
             )
             for f in findings[:50]:
-                print(f"  {f.file}:{f.line}  [{f.shingle_hash}] x{f.matches}")
+                print(f"  {f.kind:8} {f.where}  [{f.shingle_hash}] x{f.matches}")
             return 1
-        print(f"OK: no {args.words}-word passage from the input appears in any committable file.")
+        print(f"OK: no script text in any committable file ({checked}; PDFs included).")
         return 0
 
     settings = _settings(args)

@@ -129,3 +129,10 @@ Format: what the AI got wrong -> how it was caught -> fix.
     while §6 used the delivered cut (1/30, correct); and "tokens per candidate" divided by
     `max(1, live calls)`, printing a phase total when every main answer came from the cache. Both
     fixed with regression tests; the delivered run's raw outputs were left unedited.
+37. **Two gaps in the confidentiality guard** (pass A, Claude Opus 5.5): it skipped PDFs, and an
+    8-word window misses short quoted lines. Added PDF text extraction and a 4-word quoted-dialogue
+    check. Its first run found one real 4-word overlap (an invented test line that matched a line
+    of dialogue; replaced) and one false positive of mine (a Python docstring read as a quotation;
+    the scanner now ignores triple-quote delimiters).
+38. **I wrote a test count into the doc before measuring it** (243; the suite has 242). Caught by
+    running the suite before committing. Rule now: numbers in the doc come from a run, not a plan.

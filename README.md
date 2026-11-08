@@ -7,7 +7,8 @@ where the tool picks badly. The LLM is swappable through `.env` only.
 
 > **Confidential input.** Outputs quote the script. `outputs/`, `.cache/` and `.env` are
 > git-ignored; never commit or publish them. `make check-confidential SHOW_DIR=...` fails if any
-> committable file contains an 8-word passage from the input.
+> committable file (PDFs included) contains an 8-word passage from the input or a quoted span
+> sharing 4+ words with a line of dialogue.
 
 ## Requirements
 
@@ -56,6 +57,11 @@ Set these in `.env`; no code changes:
 
 `--provider` / `--model` on the command line override `.env` for one run.
 
+**What has been tested live:** only Gemini (`gemini-3.5-flash-lite` for the full 50-episode run
+and smoke runs, `gemini-3.1-flash-lite` in one smoke run). Groq, Anthropic, OpenAI and Ollama
+adapters are tested only against mocked HTTP replies in the test suite: they have never been run
+against the real service, so smoke-test them first (`make smoke`).
+
 ## The viewer
 
 `make ui` serves a read-only page over `outputs/`: pick a run and ranking, step through promos
@@ -67,6 +73,7 @@ confidential. It is not meant to be deployed publicly.
 
 ```bash
 make check    # ruff lint + format check, mypy, pytest with coverage
+make docs     # docs/SOLUTION.pdf (public, no quotes) + docs/SOLUTION_submission.pdf (private); max 2 pages
 ```
 
 Tests use a mock LLM and synthetic fixtures; they never call a real provider, even if `.env`

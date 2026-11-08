@@ -1,7 +1,7 @@
 PY ?= .venv/bin/python
 SHOW_DIR ?=
 
-.PHONY: ui install test lint fmt typecheck check ingest-check candidates run run-rules smoke package-outputs check-confidential
+.PHONY: docs ui install test lint fmt typecheck check ingest-check candidates run run-rules smoke package-outputs check-confidential
 
 install:
 	python3.12 -m venv .venv
@@ -57,3 +57,7 @@ check-confidential:
 PORT ?= 8765
 ui:
 	$(PY) frontend/server.py --port $(PORT)
+
+# Solution doc: public docs/SOLUTION.pdf (no quotes) + private docs/SOLUTION_submission.pdf (git-ignored); fails if either exceeds 2 pages
+docs:
+	$(PY) docs/build_solution.py

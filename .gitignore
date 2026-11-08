@@ -33,3 +33,6 @@ dist/
 .cache/
 # editor-written golden labels
 golden.yaml
+
+# private copy of the solution doc with script quotes (for the submission form only)
+docs/SOLUTION_submission.pdf
