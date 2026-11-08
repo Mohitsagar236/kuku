@@ -332,4 +332,13 @@ th { background:var(--cream); font:500 10px var(--mono); color:var(--mute); text
   .row-between { flex-wrap:wrap; }.cuts { display:block; overflow-x:auto; }.cuts th,.cuts td { padding:10px 6px; font-size:12px; }.nudge { margin:5px 0 0; display:flex; }
   .foot { padding:16px 18px 0; flex-wrap:wrap; gap:8px; }.report { padding:0 18px 20px; }.report .panel { padding:26px 22px; }.md h2 { font-size:34px; }.state { margin:28px 18px; padding:26px; }
 }
+/* Phones: the five review tiles become one compact row so the shortlist is not pushed down. */
+@media(max-width:767px) {
+  .reviewbar { grid-template-columns:1.5fr repeat(3,minmax(0,1fr)) 1.2fr; gap:4px; margin-bottom:12px; }
+  .review-progress,.review-metric,.review-quality { grid-column:auto; min-height:0; padding:6px 7px; border-radius:10px; }
+  .reviewbar strong { font-size:17px; line-height:1.1; }
+  .review-progress div { white-space:nowrap; }.review-progress .muted { font-size:9.5px; }
+  .progress-track,.metric-icon,.review-quality .small { display:none; }
+  .reviewbar .metric-label { display:block; font-size:7.5px; line-height:1.15; letter-spacing:.02em; white-space:normal; overflow-wrap:anywhere; }
+}
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto !important; transition:none !important; animation:none !important; } }

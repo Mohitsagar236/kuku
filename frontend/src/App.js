@@ -117,6 +117,43 @@ export function App() {
     writeHash({ run: runId, v: variant, p: selected && selected.id, tab });
   }, [runId, variant, selected, tab]);
 
+  // The URL is the single source of truth: back/forward, an edited address bar or a pasted
+  // link in an open tab all fire "hashchange", and the screen follows the hash.
+  const latest = useRef({});
+  latest.current = { runs, run, runId, variant, tab, selectedId: selected && selected.id };
+  useEffect(() => {
+    const onHashChange = () => {
+      const h = readHash();
+      const L = latest.current;
+      const nextTab = h.tab === "report" ? "report" : "promos";
+      if (h.run && L.runs && !L.runs.some((x) => x.id === h.run)) {
+        // Unknown run: keep what is on screen and put a truthful URL back.
+        writeHash({ run: L.runId, v: L.variant, p: L.selectedId, tab: L.tab });
+        return;
+      }
+      setTab(nextTab);
+      if (h.run && h.run !== L.runId) {
+        wantPromo.current = h.p; // the run-load effect applies v and p once the run arrives
+        setVariant(h.v);
+        setRunId(h.run);
+        return;
+      }
+      if (!L.run) { // same run, still loading: the load effect reads the hash when it finishes
+        wantPromo.current = h.p;
+        return;
+      }
+      const nextVariant = L.run.variants[h.v] ? h.v : "main";
+      const list = (L.run.variants[nextVariant] || {}).promos || [];
+      const idx = h.p ? list.findIndex((p) => p.id === h.p) : -1;
+      if (nextVariant !== L.variant) setVariant(nextVariant);
+      setQuery("");
+      setReviewFilter("all"); // a hidden promo would otherwise leave the URL and screen apart
+      setSel(Math.max(0, idx));
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
   useEffect(() => {
     setStatus({});
     setNudgeErr(null);

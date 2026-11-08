@@ -176,3 +176,72 @@ test("editing can recover after a refused write", async ({ page, request }) => {
   await page.getByRole("button", { name: "Approve", exact: true }).click();
   await expect(page.getByRole("button", { name: "Approve", exact: true })).toHaveAttribute("aria-pressed", "true");
 });
+
+// --- the URL is the single source of truth (hashchange) ---------------------------------
+
+const hashOf = (page) => page.evaluate(() => location.hash);
+const selectedItem = (page) =>
+  page.getByRole("navigation", { name: "Ranked promos" }).locator('[aria-current="true"]');
+
+test("editing the URL hash switches the promo, and back/forward follow it", async ({ page }) => {
+  await open(page);
+  const [first, , third] = promos;
+  await expect(selectedItem(page)).toContainText(`#${first.rank} `);
+  await page.evaluate(([r, id]) => { location.hash = `#run=${encodeURIComponent(r)}&p=${id}`; }, [runId, third.id]);
+  await expect(selectedItem(page)).toContainText(`#${third.rank} `);
+  expect(await hashOf(page)).toContain(`p=${third.id}`); // URL and screen agree
+  await page.goBack();
+  await expect(selectedItem(page)).toContainText(`#${first.rank} `);
+  await page.goForward();
+  await expect(selectedItem(page)).toContainText(`#${third.rank} `);
+});
+
+test("hash changes switch the tab and the ranking variant", async ({ page }) => {
+  await open(page);
+  const run = await (await page.request.get(`/api/run?id=${encodeURIComponent(runId)}`)).json();
+  await page.evaluate((r) => { location.hash = `#run=${encodeURIComponent(r)}&tab=report`; }, runId);
+  await expect(page.locator(".md")).toContainText("Where the tool picks badly");
+  await page.goBack();
+  await expect(page.locator(".md")).toHaveCount(0);
+  const variant = "ablation_episode_end_prior";
+  const last = run.variants[variant].promos.at(-1);
+  await page.evaluate(([r, v, p]) => { location.hash = `#run=${encodeURIComponent(r)}&v=${v}&p=${p}`; }, [runId, variant, last.id]);
+  await expect(page.getByLabel("Ranking")).toHaveValue(variant);
+  await expect(selectedItem(page)).toContainText(`#${last.rank} `);
+});
+
+test("a pasted link to another run loads that run", async ({ page, request }) => {
+  await open(page);
+  const runs = await (await request.get("/api/runs")).json();
+  const other = runs.find((r) => r.model === "mock/browser-secondary");
+  await page.evaluate((id) => { location.hash = `#run=${encodeURIComponent(id)}`; }, other.id);
+  await expect(page.getByLabel("Run")).toHaveValue(other.id);
+  expect(await hashOf(page)).toContain(encodeURIComponent(other.id));
+  await page.goBack();
+  await expect(page.getByLabel("Run")).toHaveValue(runId);
+});
+
+test("a hash naming an unknown run is corrected instead of leaving URL and screen apart", async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => { location.hash = "#run=does-not-exist%2Fnope"; });
+  await expect.poll(() => hashOf(page)).toContain(encodeURIComponent(runId));
+  await expect(page.getByLabel("Run")).toHaveValue(runId);
+});
+
+test("phone layout keeps the review stats in one compact row above the shortlist", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await open(page);
+  const bar = page.locator(".reviewbar");
+  await expect(bar).toBeVisible();
+  const tops = await bar.locator("> *").evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+  expect(tops).toHaveLength(5);
+  expect(new Set(tops).size).toBe(1); // one row
+  const barBox = await bar.boundingBox();
+  expect(barBox.height).toBeLessThanOrEqual(76);
+  const list = await page.getByRole("navigation", { name: "Ranked promos" }).boundingBox();
+  const scrollY = await page.evaluate(() => scrollY);
+  expect(list.y + scrollY).toBeLessThan(900); // was ~1000px down with four tall tiles
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 1280, height: 800 }); // desktop keeps the full tiles
+  expect((await bar.boundingBox()).height).toBeGreaterThan(90);
+});
