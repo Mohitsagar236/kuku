@@ -283,7 +283,7 @@ export function App() {
       </div>
     </header>
 
-    <div class="workspace-heading"><div><div class="eyebrow"><span class="hero-line" aria-hidden="true"></span> YOUR NEXT GREAT PROMO STARTS HERE</div><h2>${cur?.show || "Your shortlist"}</h2><p>Review the shortlist. Shape the next standout promo.</p></div><div class="hero-aside"><div class="hero-format" aria-hidden="true"><span>20–60</span><small>SECONDS. ALL IMPACT.</small></div><div class="run-meta"><span class="live-dot"></span>${KIND[cur?.kind] || "Analysis"}<span class="meta-divider">/</span>${promos.length} candidates</div></div></div>
+    <div class="workspace-heading"><div><div class="eyebrow"><span class="hero-line" aria-hidden="true"></span> YOUR NEXT GREAT PROMO STARTS HERE</div><h2>${cur?.show || "Your shortlist"}</h2><p>Review the shortlist. Shape the next standout promo.</p>${caps ? html`<button type="button" class="btn primary hero-cta" onClick=${() => { setAnalyzeOpen(true); setTimeout(() => document.getElementById("analyze-title")?.scrollIntoView({ behavior: "smooth", block: "center" }), 50); }}>Upload your own screenplay</button>` : null}</div><div class="hero-aside"><div class="hero-format" aria-hidden="true"><span>20–60</span><small>SECONDS. ALL IMPACT.</small></div><div class="run-meta"><span class="live-dot"></span>${KIND[cur?.kind] || "Analysis"}<span class="meta-divider">/</span>${promos.length} candidates</div></div></div>
 
     ${caps && analyzeOpen
       ? html`<${Analyze} caps=${caps} onClose=${() => setAnalyzeOpen(false)} onDone=${(r) => {

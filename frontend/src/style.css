@@ -354,3 +354,6 @@ th { background:var(--cream); font:500 10px var(--mono); color:var(--mute); text
 .btn.primary { color:#fff; background:var(--ink); }
 .btn.primary:disabled { opacity:.5; cursor:not-allowed; }
 @media(max-width:767px) { .analyze { width:calc(100% - 36px); padding:18px; } }
+
+.workspace-heading .hero-cta { margin-top:16px; padding:12px 26px; min-height:46px; font-size:15px; font-weight:700; color:#15121c; background:var(--orange); border:2px solid #fff; border-radius:999px; cursor:pointer; box-shadow:0 0 0 0 rgba(255,138,61,.5); }
+.workspace-heading .hero-cta:hover:not(:disabled) { background:#fff; color:#15121c; transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,0,0,.35); }

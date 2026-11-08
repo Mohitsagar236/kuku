@@ -4,8 +4,14 @@ import { dur, fmt, VERDICTS, VERDICT_WORD } from "../format.js";
 export function PromoList({ promos, visibleIndices, sel, onSelect, entries, query, onQuery, filter, onFilter, filterEnabled }) {
   const listRef = useRef(null);
   useEffect(() => {
-    const el = listRef.current && listRef.current.querySelector('[aria-current="true"]');
-    if (el) el.scrollIntoView({ block: "nearest" });
+    // Keep the selected row visible inside the list's own scroll box. Never scroll the page itself:
+    // that used to push the header (and the upload button) out of view on first load.
+    const list = listRef.current;
+    const el = list && list.querySelector('[aria-current="true"]');
+    if (!list || !el) return;
+    const top = el.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop;
+    if (top < list.scrollTop) list.scrollTop = top;
+    else if (top + el.offsetHeight > list.scrollTop + list.clientHeight) list.scrollTop = top + el.offsetHeight - list.clientHeight;
   }, [sel]);
   return html`<aside class="shortlist">
     <div class="shortlist-controls"><div class="list-heading"><span>Ranked shortlist</span><span class="count-badge">${visibleIndices.length} / ${promos.length}</span></div><p class="list-hint">Find your next standout moment</p>

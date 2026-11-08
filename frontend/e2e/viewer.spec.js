@@ -240,7 +240,7 @@ test("phone layout keeps the review stats in one compact row above the shortlist
   expect(barBox.height).toBeLessThanOrEqual(76);
   const list = await page.getByRole("navigation", { name: "Ranked promos" }).boundingBox();
   const scrollY = await page.evaluate(() => scrollY);
-  expect(list.y + scrollY).toBeLessThan(900); // was ~1000px down with four tall tiles
+  expect(list.y + scrollY).toBeLessThan(950); // was ~1000px down with four tall tiles; includes the upload button
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.setViewportSize({ width: 1280, height: 800 }); // desktop keeps the full tiles
   expect((await bar.boundingBox()).height).toBeGreaterThan(90);
@@ -328,4 +328,26 @@ test("there is no Run dropdown; the page shows the run it was opened with", asyn
   await expect(page.getByRole("combobox", { name: "Run", exact: true })).toHaveCount(0);
   await expect(page.getByRole("combobox", { name: "Ranking", exact: true })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Ranked promos" })).toBeVisible();
+});
+
+test("the main header has a prominent upload call to action that opens the analyser", async ({ page }) => {
+  await open(page);
+  const cta = page.getByRole("button", { name: "Upload your own screenplay" });
+  await expect(cta).toBeVisible();
+  await cta.click();
+  await expect(page.getByRole("heading", { name: "Analyze your own screenplay" })).toBeVisible();
+  await expect(page.getByLabel("Episode files")).toBeVisible();
+});
+
+test("opening the page does not scroll it: the header and upload button stay in view", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 700 });
+  await open(page);
+  await page.waitForTimeout(500);
+  expect(await page.evaluate(() => scrollY)).toBe(0);
+  await expect(page.getByRole("button", { name: "Upload your own screenplay" })).toBeInViewport();
+  const items = page.getByRole("navigation", { name: "Ranked promos" }).getByRole("button");
+  await page.locator("h1").click();
+  await page.keyboard.press("j");
+  await expect(items.nth(1)).toHaveAttribute("aria-current", "true");
+  expect(await page.evaluate(() => scrollY)).toBe(0); // moving through the list does not jump the page
 });
