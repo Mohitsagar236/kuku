@@ -43,7 +43,9 @@ The supported product is a confidential local editor tool. Uvicorn binds loopbac
 
 The API exposes `/healthz`, `/readyz` and `/api/openapi.json`. Readiness checks the viewer build. It does not require outputs to exist because an empty installation is valid. Uvicorn runs one local process by default; editor locks also protect cooperating processes. Runtime dependencies and frontend dependencies have committed lock files.
 
-There is no authentication, multi-tenant isolation, upload endpoint, queue, HA storage or public hosting contract. Internet-facing deployment requires those controls plus TLS, authorization, retention/backup policy, and per-tenant provider/budget isolation. Calling this rewrite publicly production-ready would be misleading. It is built and tested for the local operating model above.
+Private remote hosting is opt-in with an explicit allowed hostname and HTTP Basic password. `PF_DEMO_MODE=true` is the only password-free remote mode: it replaces the outputs repository with an isolated temporary root and seeds bundled fictional fixtures with the mock provider. It never uses confidential local outputs, .env provider credentials, or a paid model. The free Render Blueprint exposes only this synthetic demo and shared ephemeral editor reviews.
+
+There is no multi-tenant isolation, upload endpoint, analysis queue or HA storage contract. A shared production editor would need tenant authorization and durable storage in addition to the controls above. The public demo is an evaluation workspace, not a hosted confidential screenplay service.
 
 ## Verification and delivery
 

@@ -70,7 +70,7 @@ docker run --rm -p 127.0.0.1:8765:8765 \
   -v "$PWD/outputs:/app/outputs" promo-finder
 ```
 
-Reviewing existing results works without the source pack. Cut adjustments require the source at the path recorded in run metadata; for containers, mount that directory at the same absolute path or generate the run inside the container. This application has no authentication or multi-tenant isolation; public deployment is outside its supported operating model.
+Reviewing existing results works without the source pack. Cut adjustments require the source at the path recorded in run metadata; for containers, mount that directory at the same absolute path or generate the run inside the container. Private remote viewers require both `PF_ALLOWED_HOSTS` and `PF_VIEWER_PASSWORD` (HTTP Basic authentication). Multi-tenant hosting and public access to confidential outputs are not supported.
 
 CLI exit codes: `0` success, `2` invalid input/configuration, `3` quota/budget stop, `4` smoke problems, `130` interrupted.
 
@@ -89,3 +89,20 @@ solution and output archive off the public repository.
 
 The submission archive is written under ignored `outputs/packages/`; it includes
 byte-for-byte copies and SHA-256 checksums. It contains confidential derived text.
+
+## Free Render demo
+
+The root `render.yaml` deploys a **free synthetic demo**, with no paid disk and no API keys.
+Create a Render Blueprint from this repository. The Blueprint sets `PF_DEMO_MODE=true`
+and derives the allowed hostname from Render automatically. Startup seeds a fictional
+six-episode story with deterministic mock scores. The editor, review notes, cut nudges,
+variants and downloads work against isolated demo data. Shared reviews reset when the
+free instance restarts or sleeps; the UI labels this explicitly.
+
+Demo mode always uses its own `/tmp/promo-finder-demo/outputs`, regardless of the
+private outputs path supplied to the app. Never upload the assignment's screenplay pack
+or private output archive to this public demo. The bundled sample scripts are fictional
+rehearsal fixtures, not Kuku content.
+
+For a private remote viewer, leave `PF_DEMO_MODE` unset, configure a password and
+allowed hostname, and provision persistent storage separately.

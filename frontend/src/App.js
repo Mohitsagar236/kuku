@@ -98,6 +98,7 @@ export function App() {
   });
   const visibleKey = visibleIndices.join(",");
   const reviewedCount = promos.filter((p) => entries[p.id]?.verdict).length;
+  const isDemo = cur?.model === "mock/render-demo" || cur?.show === "The Quarterly Close - Sample Story";
   const selected = visibleIndices.length ? promos[Math.min(sel, promos.length - 1)] : null;
 
   useEffect(() => {
@@ -137,7 +138,7 @@ export function App() {
         if (r.ok) {
           setFb(r.data);
           if (activePromo.current === body.promo_id) {
-            setStatus({ kind: "ok", text: `${okText}. Changes saved locally.` });
+            setStatus({ kind: "ok", text: `${okText}. Changes saved.` });
           }
         } else if (activePromo.current === body.promo_id) {
           if (r.status === 422) {
@@ -214,7 +215,7 @@ export function App() {
       <div class="brand">
         <span class="brand-mark" aria-hidden="true">P<span>▶</span></span>
         <div><h1>Promo Finder</h1><span class="brand-caption">THE EDITOR WORKSPACE</span></div>
-      </div><span class="local-badge"><span></span> Local workspace</span>
+      </div><span class="local-badge"><span></span> ${isDemo ? "Public demo" : "Local workspace"}</span>
       <div class="workspace-controls">
       <label class="field">
         <span>Run</span>
@@ -245,6 +246,8 @@ export function App() {
     </header>
 
     <div class="workspace-heading"><div><div class="eyebrow"><span class="hero-line" aria-hidden="true"></span> YOUR NEXT GREAT PROMO STARTS HERE</div><h2>${cur?.show || "Your shortlist"}</h2><p>Review the shortlist. Shape the next standout promo.</p></div><div class="hero-aside"><div class="hero-format" aria-hidden="true"><span>20–60</span><small>SECONDS. ALL IMPACT.</small></div><div class="run-meta"><span class="live-dot"></span>${KIND[cur?.kind] || "Analysis"}<span class="meta-divider">/</span>${promos.length} candidates</div></div></div>
+
+    ${isDemo ? html`<div class="banner info demo-notice" role="note"><strong>Interactive demo</strong> · Fictional sample story and simulated scores. Reviews are shared and reset when the service restarts.</div>` : null}
 
     ${cur && cur.partial
       ? html`<div class="banner" role="note">Partial run: LLM scoring stopped early (no key, quota or budget), so some promos are ranked on rule scores only.</div>`
@@ -281,7 +284,7 @@ export function App() {
                 ? html`<${Detail} p=${selected} detailRef=${detailRef} fb=${fb} review=${review} reviewable=${reviewable} position=${visibleIndices.indexOf(sel)} count=${visibleIndices.length} onPrevious=${() => select(visibleIndices[visibleIndices.indexOf(sel) - 1], false)} onNext=${() => select(visibleIndices[visibleIndices.indexOf(sel) + 1], false)} />`
                 : promos.length ? html`<${State} title="No matching promos."><p>Try another search or clear your filters to see the full shortlist.</p><button type="button" class="btn" onClick=${() => { setQuery(""); setReviewFilter("all"); }}>Clear filters</button><//>` : html`<${State} title="No promos in this ranking.">The tool found no candidate that passed its hook and cliffhanger gates.<//>`}
             </main>`}
-    <footer class="foot muted"><span>Private workspace · Reviews saved on this device</span><span><kbd>↑</kbd> <kbd>↓</kbd> or <kbd>j</kbd> <kbd>k</kbd> to navigate</span>${fb?.refresh_command ? html`<details class="report-tools"><summary>Report tools</summary><${CopyButton} text=${fb.refresh_command} label="Copy report-refresh command" /></details>` : null}</footer>
+    <footer class="foot muted"><span>${isDemo ? "Sample workspace · Temporary shared reviews" : "Private workspace · Reviews saved on this device"}</span><span><kbd>↑</kbd> <kbd>↓</kbd> or <kbd>j</kbd> <kbd>k</kbd> to navigate</span>${fb?.refresh_command ? html`<details class="report-tools"><summary>Report tools</summary><${CopyButton} text=${fb.refresh_command} label="Copy report-refresh command" /></details>` : null}</footer>
   </div>`;
 }
 

@@ -1,0 +1,77 @@
+EPISODE NUMBER: 3
+EPISODE LOGLINE: Priya sneaks back in as catering staff.
+CONTINUITY NOTES: Picks up the next morning.
+
+--- SCRIPT START ---
+
+SCENE 01
+Scene heading: INT. CATERING VAN - DAY
+Scene start: 00:00.00
+Scene end: 00:14.20
+
+Actions and dialogue:
+
+**LENA:**
+Start: (00:00.20) | End: (00:03.80)
+“The gala is Friday. Every executive in the building will be there.”
+
+**PRIYA:**
+Start: (00:04.30) | End: (00:07.30)
+“And Dennis will not look at the people holding the trays.”
+
+**ACTION:**
+Start: (00:07.80) | End: (00:10.80)
+Lena hands her a white jacket with a name tag that reads MAYA.
+
+**LENA (Nervous):**
+Start: (00:11.30) | End: (00:13.90)
+“If he recognizes you, I never met you.”
+
+SCENE 02
+Scene heading: INT. HALVORSEN & GREY - BALLROOM - NIGHT
+Scene start: 00:14.20
+Scene end: 00:48.00
+
+Actions and dialogue:
+
+**CAMERA:**
+Start: (00:14.40) | End: (00:17.40)
+Champagne flutes line a silver tray. Priya's hands tremble.
+
+**DENNIS:**
+Start: (00:17.90) | End: (00:21.30)
+“Marguerite, you look radiant. Is that the new acquisition suit?”
+
+**MARGUERITE (Tight smile):**
+Start: (00:21.80) | End: (00:25.20)
+“It is the same suit I wore to your wife's birthday.”
+
+**ACTION:**
+Start: (00:25.70) | End: (00:28.90)
+Priya passes behind them. Dennis's eyes follow the tray, then the face.
+
+**DENNIS:**
+Start: (00:29.40) | End: (00:30.80)
+“Have we met?”
+
+**PRIYA (Disguising her voice):**
+Start: (00:31.30) | End: (00:33.90)
+“No, sir. I just started tonight.”
+
+**ACTION:**
+Start: (00:34.40) | End: (00:37.20)
+He grips her wrist. The tray tilts. A glass shatters.
+
+**DENNIS (Low):**
+Start: (00:37.70) | End: (00:41.50)
+“Smile. Or I tell them exactly what you did at your last job.”
+
+**PRIYA:**
+Start: (00:42.00) | End: (00:44.20)
+“I did nothing at my last job.”
+
+**DENNIS:**
+Start: (00:44.70) | End: (00:47.70)
+“That is what makes the story so easy to tell.”
+
+--- SCRIPT END ---

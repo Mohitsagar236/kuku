@@ -1,0 +1,112 @@
+EPISODE NUMBER: 1
+EPISODE LOGLINE: Priya, a junior analyst, is fired for fraud she did not commit.
+CONTINUITY NOTES: First episode.
+
+--- SCRIPT START ---
+
+SCENE 01
+Scene heading: INT. HALVORSEN & GREY - OPEN PLAN - MORNING
+Scene start: 00:00.00
+Scene end: 00:18.50
+
+Actions and dialogue:
+
+**ACTION:**
+Start: (00:00.20) | End: (00:03.70)
+Priya Venkataraman walks in with two coffees. The whole floor goes silent.
+
+**LENA (Whispering):**
+Start: (00:04.20) | End: (00:07.20)
+“Don't go to your desk. Security is waiting for you.”
+
+**PRIYA (Confused):**
+Start: (00:07.70) | End: (00:09.50)
+“Security? For what?”
+
+**DENNIS:**
+Start: (00:10.00) | End: (00:12.20)
+“Priya. My office. Now.”
+
+**ACTION:**
+Start: (00:12.70) | End: (00:15.70)
+Colleagues stare. Someone raises a phone and starts filming.
+
+**SFX:**
+Start: (00:16.20) | End: (00:18.20)
+A printer jams somewhere. Nobody moves.
+
+SCENE 02
+Scene heading: INT. DENNIS HALE'S OFFICE - CONTINUOUS
+Scene start: 00:18.50
+Scene end: 00:52.10
+
+Actions and dialogue:
+
+**DENNIS (Cold):**
+Start: (00:18.70) | End: (00:22.70)
+“The Q3 filing had your login on every number that was wrong.”
+
+**PRIYA:**
+Start: (00:23.20) | End: (00:26.80)
+“I never touched the Q3 filing. I am not even cleared for it.”
+
+**DENNIS:**
+Start: (00:27.30) | End: (00:29.90)
+“Funny. Your password says otherwise.”
+
+**PRIYA (Angry):**
+Start: (00:30.40) | End: (00:33.20)
+“Someone used my login. Pull the access log.”
+
+**DENNIS (Smiling):**
+Start: (00:33.70) | End: (00:36.90)
+“There is no log. It was wiped on Friday night.”
+
+**PRIYA:**
+Start: (00:37.40) | End: (00:39.00)
+“Wiped by who?”
+
+**DENNIS:**
+Start: (00:39.50) | End: (00:42.50)
+“You are being terminated, effective this minute.”
+
+**ACTION:**
+Start: (00:43.00) | End: (00:46.00)
+He slides a folder across the desk. Priya does not take it.
+
+**PRIYA (Shaking):**
+Start: (00:46.50) | End: (00:49.50)
+“You have done this before. Haven't you?”
+
+**DENNIS:**
+Start: (00:50.00) | End: (00:51.80)
+“Badge. On the desk.”
+
+SCENE 03
+Scene heading: INT. LOBBY - DAY
+Scene start: 00:52.10
+Scene end: 01:10.20
+
+Actions and dialogue:
+
+**ACTION:**
+Start: (00:52.30) | End: (00:56.30)
+Priya carries a cardboard box through the lobby. Theo Brandt from IT hurries after her.
+
+**THEO (Low):**
+Start: (00:56.80) | End: (00:59.80)
+“I copied your login history before they wiped it.”
+
+**PRIYA:**
+Start: (01:00.30) | End: (01:02.90)
+“Why would you risk your job for me?”
+
+**THEO:**
+Start: (01:03.40) | End: (01:08.40)
+“Because Friday's login did not come from your desk. It came from the CFO's office.”
+
+**TRANSITION:**
+Start: (01:08.90) | End: (01:09.90)
+CUT TO:
+
+--- SCRIPT END ---

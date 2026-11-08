@@ -1,0 +1,70 @@
+EPISODE NUMBER: 6
+EPISODE LOGLINE: The ledger and the truth.
+CONTINUITY NOTES: Same night.
+
+--- SCRIPT START ---
+
+SCENE 1
+SCENE HEADING: INT. HALE RESIDENCE - STUDY - NIGHT
+Scene start: 00:00.00
+Scene end: 00:48.20
+
+Actions and dialogue:
+
+**ACTION:**
+Start: (00:00.20) | End: (00:03.40)
+Priya kneels at a wall safe. Theo holds the flashlight in his teeth.
+
+**SFX:**
+Start: (00:03.90) | End: (00:05.90)
+A soft click. The safe door swings open.
+
+**THEO (Muffled):**
+Start: (00:06.40) | End: (00:07.80)
+“Is it there?”
+
+**ACTION:**
+Start: (00:08.30) | End: (00:10.90)
+Priya lifts out a black drive. Her face falls.
+
+**PRIYA:**
+Start: (00:11.40) | End: (00:14.40)
+“It is empty. Someone got here first.”
+
+**ACTION:**
+Start: (00:14.90) | End: (00:18.50)
+The study lights snap on. Marguerite stands in the doorway holding the real ledger.
+
+**MARGUERITE (Calm):**
+Start: (00:19.00) | End: (00:23.40)
+“I took it a month ago. I needed you to make enough noise to break him.”
+
+**PRIYA (Raw):**
+Start: (00:23.90) | End: (00:26.90)
+“You let them destroy me to bait a trap?”
+
+**MARGUERITE:**
+Start: (00:27.40) | End: (00:30.00)
+“I needed someone he would underestimate.”
+
+**ACTION:**
+Start: (00:30.50) | End: (00:33.50)
+Dennis steps out of the shadows behind her, clapping slowly.
+
+**DENNIS (Amused):**
+Start: (00:34.00) | End: (00:37.60)
+“Bravo. But you both think I am the one at the top.”
+
+**SFX:**
+Start: (00:38.10) | End: (00:40.50)
+A car door shuts outside. Heavy footsteps cross the gravel.
+
+**ACTION:**
+Start: (00:41.00) | End: (00:44.00)
+The study door opens. The chairman of the board walks in.
+
+**CHAIRMAN:**
+Start: (00:44.50) | End: (00:47.90)
+“Good evening, Dennis. Thank you for the introduction.”
+
+--- SCRIPT END ---

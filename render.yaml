@@ -1,19 +1,18 @@
-# Render Blueprint: password-protected Promo Finder viewer.
-# Deploy: Render dashboard -> New -> Blueprint -> pick this repo.
+# Free public demo: fictional sample inputs, mock scores, ephemeral shared reviews.
+# No confidential outputs, model keys, passwords or persistent paid disks.
 services:
   - type: web
-    name: promo-finder
+    name: promo-finder-demo
     runtime: docker
-    plan: starter              # persistent disks need a paid plan
+    plan: free
     healthCheckPath: /readyz
     envVars:
-      - key: PF_VIEWER_PASSWORD
-        sync: false            # you type it in the Render dashboard; never commit it
+      - key: PF_DEMO_MODE
+        value: "true"
       - key: PF_ALLOWED_HOSTS
-        value: promo-finder.onrender.com   # change to your service's real hostname
+        fromService:
+          name: promo-finder-demo
+          type: web
+          envVarKey: RENDER_EXTERNAL_HOSTNAME
       - key: PF_LOG_LEVEL
         value: INFO
-    disk:
-      name: promo-outputs
-      mountPath: /app/outputs  # runs and saved reviews live here
-      sizeGB: 1

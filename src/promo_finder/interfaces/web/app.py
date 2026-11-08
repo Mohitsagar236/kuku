@@ -30,6 +30,12 @@ def create_app(outputs: str | Path = "outputs", static_dir: Path | None = None) 
         redoc_url=None,
         openapi_url="/api/openapi.json",
     )
+    demo_mode = os.environ.get("PF_DEMO_MODE", "").lower() == "true"
+    if demo_mode:
+        from promo_finder.interfaces.web.demo import seed_demo
+
+        # Public demos never enumerate the caller's private outputs directory.
+        outputs = seed_demo(Path(os.environ.get("PF_DEMO_ROOT", "/tmp/promo-finder-demo")))
     runs = RunRepository(Path(outputs))
     editor = EditorService(runs)
     static = (static_dir or WEB_ROOT).resolve()
@@ -41,6 +47,7 @@ def create_app(outputs: str | Path = "outputs", static_dir: Path | None = None) 
         LocalSecurityMiddleware,
         allowed_hosts=hosts,
         password=os.environ.get("PF_VIEWER_PASSWORD", ""),
+        public_demo=demo_mode,
     )
 
     @app.exception_handler(EditorError)

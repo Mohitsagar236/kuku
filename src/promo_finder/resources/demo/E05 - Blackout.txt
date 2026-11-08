@@ -1,0 +1,65 @@
+EPISODE NUMBER: 5
+
+--- SCRIPT START ---
+
+SCENE 1
+SCENE HEADING: INT. BALLROOM - DARK
+Scene start: 00:00.00
+Scene end: 00:20.40
+
+Actions and dialogue:
+
+**SFX:**
+Start: (00:00.20) | End: (00:03.20)
+Screams. Glass breaking. Phones light up like fireflies.
+
+**THEO:**
+Start: (00:03.70) | End: (00:06.30)
+Priya! Over here! The service corridor!
+
+**ACTION:**
+Start: (00:06.80) | End: (00:09.80)
+Priya feels along the wall. A hand closes over her mouth.
+
+**CORBIN:**
+Start: (00:10.30) | End: (00:13.30)
+Quiet. I am the one who wiped the logs.
+
+**PRIYA:**
+Start: (00:13.80) | End: (00:16.20)
+Then you know it was never me.
+
+**CORBIN (Shaking):**
+Start: (00:16.70) | End: (00:20.10)
+I know. And I know where the real ledger is.
+
+SCENE 2
+SCENE HEADING: INT. SERVICE CORRIDOR - CONTINUOUS
+Scene start: 00:20.40
+Scene end: 00:41.00
+
+Actions and dialogue:
+
+**CORBIN:**
+Start: (00:20.60) | End: (00:24.60)
+“Dennis keeps it on a drive in his safe. The safe is in his house.”
+
+**THEO:**
+Start: (00:25.10) | End: (00:27.30)
+“Why are you telling us this now?”
+
+**CORBIN:**
+Start: (00:27.80) | End: (00:31.00)
+“Because tonight he gave me the order to hurt her.”
+
+**ACTION:**
+Start: (00:31.50) | End: (00:34.50)
+Footsteps echo down the corridor. A flashlight sweeps toward them.
+
+**LENA (Breathless):**
+Start: (00:35.00) | End: (00:38.00)
+“They know about the van. They have my sister.”
+
+**PRIYA:**
+Start: (00:38.50) | End: (00:40.70)
+“We go to his house. Tonight.”

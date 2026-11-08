@@ -35,8 +35,9 @@ class LocalSecurityMiddleware:
         app: ASGIApp,
         allowed_hosts: frozenset[str] = frozenset(),
         password: str = "",
+        public_demo: bool = False,
     ) -> None:
-        if allowed_hosts and not password:
+        if allowed_hosts and not password and not public_demo:
             raise ValueError(
                 "PF_ALLOWED_HOSTS requires PF_VIEWER_PASSWORD (refusing to start open)"
             )

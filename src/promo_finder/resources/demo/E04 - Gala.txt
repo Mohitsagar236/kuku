@@ -1,0 +1,66 @@
+EPISODE NUMBER: 4
+EPISODE LOGLINE: The gala turns public.
+CONTINUITY NOTES: Continues directly.
+
+--- SCRIPT START ---
+
+SCENE 1
+SCENE HEADING: INT. BALLROOM - CONTINUOUS
+Scene start: 00:00.00
+Scene end: 00:39.40
+
+Actions and dialogue:
+
+**ACTION:**
+Start: (00:00.20) | End: (00:03.20)
+Priya yanks her arm free. Every head in the ballroom turns.
+
+**PRIYA (Loud):**
+Start: (00:03.70) | End: (00:06.90)
+“Ask him where the forty-one transfers went!”
+
+**DENNIS:**
+Start: (00:07.40) | End: (00:10.00)
+“Security. This woman was fired for fraud.”
+
+**PRIYA:**
+Start: (00:10.50) | End: (00:13.50)
+“Kestrel Holdings. Say it out loud, Dennis.”
+
+**SFX:**
+Start: (00:14.00) | End: (00:16.00)
+The string quartet stops mid-note.
+
+**ACTION:**
+Start: (00:16.50) | End: (00:18.50)
+Marguerite steps between them.
+
+**MARGUERITE:**
+Start: (00:19.00) | End: (00:20.60)
+“Let her speak.”
+
+**DENNIS (Furious):**
+Start: (00:21.10) | End: (00:23.90)
+“Nobody takes the floor on my watch.”
+
+**ACTION:**
+Start: (00:24.40) | End: (00:27.00)
+Marguerite slaps him across the face. The room gasps.
+
+**MARGUERITE:**
+Start: (00:27.50) | End: (00:30.50)
+“That was for the last person who asked.”
+
+**ACTION:**
+Start: (00:31.00) | End: (00:33.50)
+Dennis smiles and touches his cheek.
+
+**DENNIS (Soft):**
+Start: (00:34.00) | End: (00:36.60)
+“Now you have done it, Marguerite.”
+
+**SFX:**
+Start: (00:37.10) | End: (00:39.10)
+Every light in the ballroom dies at once.
+
+--- SCRIPT END ---
