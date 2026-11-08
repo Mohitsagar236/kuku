@@ -1,0 +1,289 @@
+{
+  "run_finished_at": "2026-11-08T19:30:57",
+  "mode": "run",
+  "episodes_requested": "all",
+  "duration_s": 26.0,
+  "source_dir": "resources/demo",
+  "show": {
+    "title": "The Quarterly Close - Sample Story",
+    "slug": "demo",
+    "source_hash": "a84a3591fbb8e8d1f1fda33276ca5c88a46d6d5e7fb6e5fa76336e37b44cc7fb",
+    "episodes": 6,
+    "speaker_aliases": {}
+  },
+  "llm": {
+    "provider": "gemini",
+    "model": "gemini-3.5-flash-lite",
+    "temperature": 0.0,
+    "rpm": 10,
+    "rpd": 200,
+    "max_concurrency": 2,
+    "budget_usd": null
+  },
+  "prompts": {
+    "score_v1": "6107d37d518c",
+    "clarity_v3": "18673a516c04",
+    "coherence_v1": "f3dbe4ef7d5f"
+  },
+  "config": {
+    "scoring": {
+      "score_prompt": "score_v1",
+      "clarity_prompt": "clarity_v3",
+      "coherence_prompt": "coherence_v1",
+      "rerank_prompt": "rerank_v1",
+      "hook_window_s": 3.0,
+      "cliff_window_s": 8.0,
+      "max_batch": 8,
+      "stitched_batch": 5,
+      "clarity_batch": 6,
+      "max_validation_retries": 2,
+      "rerank_pool": 30,
+      "rerank_passes": 2,
+      "min_total_s": 20.0,
+      "max_total_s": 60.0,
+      "end_spacing_s": 1.0,
+      "refine_ends": true,
+      "cascade_top": 60,
+      "max_words_why": 25,
+      "max_words_gap": 12,
+      "literal_cues": [
+        "cliffhanger"
+      ]
+    },
+    "ranking": {
+      "gates": {
+        "min_hook": 5.0,
+        "min_cliffhanger": 5.0,
+        "min_clarity": 5.0
+      },
+      "fusion": {
+        "llm_share": 0.7,
+        "clarity_llm_share": 0.85,
+        "weights": {
+          "hook": 0.275,
+          "cliffhanger": 0.275,
+          "clarity": 0.25,
+          "intensity": 0.2
+        },
+        "spoiler_penalty_per_point": 0.05,
+        "stitched_base": 0.7,
+        "stitched_unknown": 0.8
+      },
+      "selection": {
+        "dedupe_iou": 0.3,
+        "same_ending_tol_s": 1.5,
+        "max_per_episode": 2,
+        "max_per_scene": 1,
+        "max_per_arc": 5,
+        "arc_size": 5,
+        "output_count": 30
+      },
+      "rerank": {
+        "weight": 0.5,
+        "pool": 30
+      },
+      "trim": {
+        "apply": false
+      },
+      "confidence": {
+        "base_with_llm": 0.55,
+        "agreement_gain": 0.4,
+        "no_llm": 0.25
+      }
+    },
+    "candidate": {
+      "min_total_s": 20.0,
+      "max_total_s": 60.0,
+      "hook_window_s": 3.0,
+      "min_segment_s": 3.0,
+      "max_segments": 3,
+      "nms_iou": 0.5,
+      "nms_edge_tol_s": 1.5,
+      "pool_per_episode": 24,
+      "top_n_per_episode": 8,
+      "stitch_top_n_total": 40,
+      "tail_window_s": 8.0,
+      "episode_end_weight": 0.25,
+      "cue_window_s": 8.0,
+      "hook_seeds_per_episode": 3,
+      "cliff_seeds_per_episode": 3,
+      "max_episode_gap": 1,
+      "min_gap_same_episode_s": 2.0,
+      "seed_min_hook": 3.0,
+      "seed_min_cliff": 3.0,
+      "seed_spacing_s": 6.0,
+      "stitch_penalty": 0.7,
+      "recap_head_s": 30.0,
+      "recap_tail_s": 60.0,
+      "recap_min_words": 3,
+      "recap_similarity": 0.85,
+      "recap_overlap": 0.6,
+      "weights": {
+        "hook": 0.35,
+        "cliffhanger": 0.35,
+        "intensity": 0.15,
+        "clarity": 0.15
+      },
+      "dead_air_s": 6.0
+    },
+    "evaluation": {
+      "stability_enabled": false,
+      "stability_sample_frac": 0.1,
+      "stability_seed": 7,
+      "golden_k": 10,
+      "golden_iou": 0.5,
+      "ablation_enabled": true,
+      "ablations": [
+        "literal_cliffhanger",
+        "episode_end_prior"
+      ]
+    }
+  },
+  "usage": {
+    "latency_ms": {
+      "mean": 5474.2,
+      "p50": 1683.4,
+      "p95": 21643.2,
+      "max": 21643.2
+    },
+    "retries": {
+      "count": 0,
+      "by_kind": {},
+      "events": []
+    },
+    "truncated_calls": 0,
+    "by_phase": {
+      "main": {
+        "calls": 4,
+        "tokens_in": 5570,
+        "tokens_out": 320
+      },
+      "ablation:episode_end_prior": {
+        "calls": 1,
+        "tokens_in": 1530,
+        "tokens_out": 87
+      }
+    },
+    "provider": "gemini",
+    "model": "gemini-3.5-flash-lite",
+    "calls": 5,
+    "tokens_in": 7100,
+    "tokens_out": 407,
+    "cost_usd": 0.0,
+    "price_known": false,
+    "cache_hits": {
+      "score": 56,
+      "clarity": 13,
+      "rerank": 4
+    },
+    "by_task": {
+      "clarity": {
+        "calls": 3,
+        "tokens_in": 5832,
+        "tokens_out": 365,
+        "cost_usd": 0.0
+      },
+      "rerank": {
+        "calls": 2,
+        "tokens_in": 1268,
+        "tokens_out": 42,
+        "cost_usd": 0.0
+      }
+    }
+  },
+  "calls_by_phase": {
+    "main": {
+      "calls": 4,
+      "tokens_in": 5570,
+      "tokens_out": 320
+    },
+    "ablation:episode_end_prior": {
+      "calls": 1,
+      "tokens_in": 1530,
+      "tokens_out": 87
+    }
+  },
+  "truncated_calls": 0,
+  "measured_output_tokens_per_scored_candidate": 0.0,
+  "scoring_stats": {
+    "score_cached": 19,
+    "stage2_candidates": 9,
+    "clarity_live": 9,
+    "clarity_failed": 0
+  },
+  "partial": false,
+  "gates": {
+    "dropped": {
+      "scene_cap": 2,
+      "arc_cap": 1
+    },
+    "gated": {},
+    "hook_first_pass": 7
+  },
+  "end_refinement": {
+    "refined": 2,
+    "rejected": 0
+  },
+  "latency_ms": {
+    "mean": 5474.2,
+    "p50": 1683.4,
+    "p95": 21643.2,
+    "max": 21643.2
+  },
+  "retries": {
+    "count": 0,
+    "by_kind": {},
+    "events": []
+  },
+  "cascade": {
+    "top": 60,
+    "fully_scored": 9,
+    "first_pass_scored": 19
+  },
+  "variants": {
+    "main": {
+      "candidates": 19,
+      "promos": 6,
+      "fully_scored": 9,
+      "dropped": {
+        "scene_cap": 2,
+        "arc_cap": 1
+      },
+      "top10_end_at_episode_end": 3
+    },
+    "rules_baseline": {
+      "candidates": 19,
+      "promos": 6,
+      "fully_scored": 19,
+      "dropped": {
+        "scene_cap": 3,
+        "arc_cap": 5,
+        "overlap": 4,
+        "episode_cap": 1
+      },
+      "top10_end_at_episode_end": 2
+    },
+    "ablation:literal_cliffhanger": {
+      "candidates": 19,
+      "promos": 6,
+      "fully_scored": 9,
+      "dropped": {
+        "scene_cap": 2,
+        "arc_cap": 1
+      },
+      "top10_end_at_episode_end": 3
+    },
+    "ablation:episode_end_prior": {
+      "candidates": 18,
+      "promos": 5,
+      "fully_scored": 7,
+      "dropped": {
+        "scene_cap": 2
+      },
+      "top10_end_at_episode_end": 2
+    }
+  },
+  "rules_baseline_dir": "/var/folders/sn/f6tvj89n63j_kc4p8r5wdgn40000gn/T/promo-demo-l8vy976_/outputs/demo/rules_baseline",
+  "stability": null,
+  "golden": null
+}

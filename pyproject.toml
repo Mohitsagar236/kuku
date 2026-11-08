@@ -29,7 +29,7 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-promo_finder = ["resources/config/*.yaml", "resources/prompts/*.md", "resources/demo/*.txt", "resources/web/*", "resources/web/assets/*"]
+promo_finder = ["resources/config/*.yaml", "resources/prompts/*.md", "resources/demo/*.txt", "resources/demo_outputs/*/*", "resources/demo_outputs/*/*/*", "resources/web/*", "resources/web/assets/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

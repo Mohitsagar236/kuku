@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { html } from "./ui.js";
 import { getJSON, sendJSON } from "./api.js";
 import { readHash, writeHash } from "./navigation.js";
-import { KIND, when, variantLabel, pct } from "./format.js";
+import { KIND, when, variantLabel, pct, demoScoring } from "./format.js";
 import { Markdown } from "./Markdown.js";
 import { CopyButton } from "./components/CopyButton.js";
 import { State } from "./components/State.js";
@@ -284,7 +284,7 @@ export function App() {
 
     <div class="workspace-heading"><div><div class="eyebrow"><span class="hero-line" aria-hidden="true"></span> YOUR NEXT GREAT PROMO STARTS HERE</div><h2>${cur?.show || "Your shortlist"}</h2><p>Review the shortlist. Shape the next standout promo.</p></div><div class="hero-aside"><div class="hero-format" aria-hidden="true"><span>20–60</span><small>SECONDS. ALL IMPACT.</small></div><div class="run-meta"><span class="live-dot"></span>${KIND[cur?.kind] || "Analysis"}<span class="meta-divider">/</span>${promos.length} candidates</div></div></div>
 
-    ${isDemo ? html`<div class="banner info demo-notice" role="note"><strong>Interactive demo</strong> · Fictional sample story and simulated scores. Reviews are shared and reset when the service restarts.</div>` : null}
+    ${isDemo ? html`<div class="banner info demo-notice" role="note"><strong>Interactive demo</strong> · Fictional sample story. ${demoScoring(cur)}. Reviews are shared and reset when the service restarts.</div>` : null}
 
     ${cur && cur.partial
       ? html`<div class="banner" role="note">Partial run: LLM scoring stopped early (no key, quota or budget), so some promos are ranked on rule scores only.</div>`

@@ -58,3 +58,11 @@ export const VERDICTS = [
 export const VERDICT_WORD = { approve: "approved", would_post: "would post", reject: "rejected" };
 export const pct = (n) => (n == null ? "\u2013" : Number(n).toFixed(2));
 
+
+/** Demo banner wording. "Simulated" only when the run really used the mock model. */
+export function demoScoring(run) {
+  const model = (run && run.model) || "";
+  if (!model || model.startsWith("mock")) return "simulated scores";
+  const day = run.generated_at ? run.generated_at.slice(0, 10) : "an unknown date";
+  return `Scored by ${model} on ${day}`;
+}

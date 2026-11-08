@@ -1,0 +1,391 @@
+{
+  "show": "The Quarterly Close - Sample Story",
+  "variant": "ablation:literal_cliffhanger",
+  "generated_at": "2026-11-08T19:30:57",
+  "model": "gemini/gemini-3.5-flash-lite",
+  "partial": false,
+  "promos": [
+    {
+      "rank": 1,
+      "id": "0b63db28dda4",
+      "kind": "single",
+      "segments": [
+        {
+          "episode": 5,
+          "start_s": 16.7,
+          "end_s": 38.0,
+          "start_ts": "00:16.70",
+          "end_ts": "00:38.00"
+        }
+      ],
+      "total_duration_s": 21.3,
+      "hook": {
+        "beat_id": "E005-S01-B005",
+        "episode": 5,
+        "ts": "00:16.70",
+        "kind": "dialogue",
+        "speaker": "CORBIN",
+        "text": "I know. And I know where the real ledger is."
+      },
+      "cliffhanger": {
+        "beat_id": "E005-S02-B004",
+        "episode": 5,
+        "ts": "00:35.00",
+        "kind": "dialogue",
+        "speaker": "LENA",
+        "text": "They know about the van. They have my sister."
+      },
+      "why": "Opens with a tense confession about a hidden ledger and cuts off right as they resolve to break into the house.",
+      "post_first_because": "Post first because it makes sense to a newcomer (7/10) and ends on an unresolved cliffhanger (6/10). Weakest point: intensity (5/10).",
+      "scores": {
+        "hook": 5.15,
+        "cliffhanger": 6.35,
+        "clarity": 7.4,
+        "intensity": 4.9,
+        "spoiler_risk": 5.0,
+        "coherence": null,
+        "rule_hook": 5.5,
+        "rule_cliffhanger": 2.5,
+        "rule_intensity": 0.0,
+        "rule_clarity": 4.0,
+        "llm_hook": 5.0,
+        "llm_cliffhanger": 8.0,
+        "llm_intensity": 7.0,
+        "llm_clarity": 8.0,
+        "rerank_rank": 2
+      },
+      "rule_score": 3.4,
+      "final_score": 6.971,
+      "confidence": 0.8,
+      "risks": [
+        "starts_mid_scene",
+        "many_speakers"
+      ],
+      "flags": [],
+      "trim_applied": false,
+      "ends_at_episode_end": false,
+      "end_refined": true,
+      "original_end_ts": "00:40.70",
+      "original_duration_s": 24.0,
+      "status": "proposed"
+    },
+    {
+      "rank": 2,
+      "id": "ce5ee9556923",
+      "kind": "single",
+      "segments": [
+        {
+          "episode": 3,
+          "start_s": 17.9,
+          "end_s": 47.7,
+          "start_ts": "00:17.90",
+          "end_ts": "00:47.70"
+        }
+      ],
+      "total_duration_s": 29.8,
+      "hook": {
+        "beat_id": "E003-S02-B001",
+        "episode": 3,
+        "ts": "00:17.90",
+        "kind": "dialogue",
+        "speaker": "DENNIS",
+        "text": "Marguerite, you look radiant. Is that the new acquisition suit?"
+      },
+      "cliffhanger": {
+        "beat_id": "E003-S02-B009",
+        "episode": 3,
+        "ts": "00:44.70",
+        "kind": "dialogue",
+        "speaker": "DENNIS",
+        "text": "That is what makes the story so easy to tell."
+      },
+      "why": "The confrontation escalates quickly with physical tension and a sharp threat, leaving the outcome completely unresolved.",
+      "post_first_because": "#2: it makes sense to a newcomer (8/10) and ends on an unresolved cliffhanger (6/10). Weakest point: hook (5/10).",
+      "scores": {
+        "hook": 4.85,
+        "cliffhanger": 6.35,
+        "clarity": 7.55,
+        "intensity": 5.1,
+        "spoiler_risk": 4.0,
+        "coherence": null,
+        "rule_hook": 4.5,
+        "rule_cliffhanger": 2.5,
+        "rule_intensity": 0.667,
+        "rule_clarity": 5.0,
+        "llm_hook": 5.0,
+        "llm_cliffhanger": 8.0,
+        "llm_intensity": 7.0,
+        "llm_clarity": 8.0,
+        "rerank_rank": 3
+      },
+      "rule_score": 3.3,
+      "final_score": 6.694,
+      "confidence": 0.786,
+      "risks": [
+        "starts_mid_scene"
+      ],
+      "flags": [],
+      "trim_applied": false,
+      "ends_at_episode_end": true,
+      "end_refined": false,
+      "original_end_ts": null,
+      "original_duration_s": null,
+      "status": "proposed"
+    },
+    {
+      "rank": 3,
+      "id": "2a3a77249f47",
+      "kind": "single",
+      "segments": [
+        {
+          "episode": 4,
+          "start_s": 19.0,
+          "end_s": 39.1,
+          "start_ts": "00:19.00",
+          "end_ts": "00:39.10"
+        }
+      ],
+      "total_duration_s": 20.1,
+      "hook": {
+        "beat_id": "E004-S01-B006",
+        "episode": 4,
+        "ts": "00:19.00",
+        "kind": "dialogue",
+        "speaker": "MARGUERITE",
+        "text": "Let her speak."
+      },
+      "cliffhanger": {
+        "beat_id": "E004-S01-B012",
+        "episode": 4,
+        "ts": "00:37.10",
+        "kind": "sound_fx",
+        "speaker": null,
+        "text": "Every light in the ballroom dies at once."
+      },
+      "why": "Starting mid-confrontation lacks maximum punch, but the sudden total blackout cliffhanger is exceptionally chilling and unresolved.",
+      "post_first_because": "#3: it makes sense to a newcomer (8/10) and ends on an unresolved cliffhanger (6/10).",
+      "scores": {
+        "hook": 5.13,
+        "cliffhanger": 6.35,
+        "clarity": 7.55,
+        "intensity": 6.18,
+        "spoiler_risk": 2.0,
+        "coherence": null,
+        "rule_hook": 5.417,
+        "rule_cliffhanger": 2.5,
+        "rule_intensity": 1.917,
+        "rule_clarity": 5.0,
+        "llm_hook": 5.0,
+        "llm_cliffhanger": 8.0,
+        "llm_intensity": 8.0,
+        "llm_clarity": 8.0,
+        "rerank_rank": 4
+      },
+      "rule_score": 3.808,
+      "final_score": 6.589,
+      "confidence": 0.79,
+      "risks": [
+        "starts_mid_scene"
+      ],
+      "flags": [],
+      "trim_applied": false,
+      "ends_at_episode_end": true,
+      "end_refined": false,
+      "original_end_ts": null,
+      "original_duration_s": null,
+      "status": "proposed"
+    },
+    {
+      "rank": 4,
+      "id": "3c5ba036440b",
+      "kind": "single",
+      "segments": [
+        {
+          "episode": 2,
+          "start_s": 36.3,
+          "end_s": 60.3,
+          "start_ts": "00:36.30",
+          "end_ts": "01:00.30"
+        }
+      ],
+      "total_duration_s": 24.0,
+      "hook": {
+        "beat_id": "E002-S02-B004",
+        "episode": 2,
+        "ts": "00:36.30",
+        "kind": "dialogue",
+        "speaker": "PRIYA",
+        "text": "Then who has your keycard?"
+      },
+      "cliffhanger": {
+        "beat_id": "E002-S03-B003",
+        "episode": 2,
+        "ts": "00:57.70",
+        "kind": "dialogue",
+        "speaker": "DENNIS",
+        "text": "Then get it. Whatever it costs."
+      },
+      "why": "Pleading for answers leads straight into a high-stakes phone call ordering interception.",
+      "post_first_because": "#4: it makes sense to a newcomer (7/10) and ends on an unresolved cliffhanger (6/10). Weakest point: intensity (5/10).",
+      "scores": {
+        "hook": 5.88,
+        "cliffhanger": 6.35,
+        "clarity": 7.4,
+        "intensity": 4.7,
+        "spoiler_risk": 5.0,
+        "coherence": null,
+        "rule_hook": 7.917,
+        "rule_cliffhanger": 2.5,
+        "rule_intensity": 1.667,
+        "rule_clarity": 4.0,
+        "llm_hook": 5.0,
+        "llm_cliffhanger": 8.0,
+        "llm_intensity": 6.0,
+        "llm_clarity": 8.0,
+        "rerank_rank": 4
+      },
+      "rule_score": 4.496,
+      "final_score": 6.451,
+      "confidence": 0.78,
+      "risks": [
+        "starts_mid_scene",
+        "many_speakers"
+      ],
+      "flags": [],
+      "trim_applied": false,
+      "ends_at_episode_end": true,
+      "end_refined": false,
+      "original_end_ts": null,
+      "original_duration_s": null,
+      "status": "proposed"
+    },
+    {
+      "rank": 5,
+      "id": "413cfce03d1f",
+      "kind": "single",
+      "segments": [
+        {
+          "episode": 6,
+          "start_s": 14.9,
+          "end_s": 44.0,
+          "start_ts": "00:14.90",
+          "end_ts": "00:44.00"
+        }
+      ],
+      "total_duration_s": 29.1,
+      "hook": {
+        "beat_id": "E006-S01-B005",
+        "episode": 6,
+        "ts": "00:14.90",
+        "kind": "action",
+        "speaker": null,
+        "text": "The study lights snap on. Marguerite stands in the doorway holding the real ledger."
+      },
+      "cliffhanger": {
+        "beat_id": "E006-S01-B012",
+        "episode": 6,
+        "ts": "00:41.00",
+        "kind": "action",
+        "speaker": null,
+        "text": "The study door opens. The chairman of the board walks in."
+      },
+      "why": "The sudden light reveal works well as a mid-tier hook and the unexpected chairman arrival creates a sharp cliffhanger.",
+      "post_first_because": "#5: it makes sense to a newcomer (8/10) and ends on an unresolved cliffhanger (6/10). Weakest point: intensity (5/10).",
+      "scores": {
+        "hook": 4.93,
+        "cliffhanger": 6.36,
+        "clarity": 7.55,
+        "intensity": 4.9,
+        "spoiler_risk": 6.0,
+        "coherence": null,
+        "rule_hook": 4.75,
+        "rule_cliffhanger": 2.531,
+        "rule_intensity": 0.0,
+        "rule_clarity": 5.0,
+        "llm_hook": 5.0,
+        "llm_cliffhanger": 8.0,
+        "llm_intensity": 7.0,
+        "llm_clarity": 8.0,
+        "rerank_rank": 4
+      },
+      "rule_score": 3.298,
+      "final_score": 6.335,
+      "confidence": 0.78,
+      "risks": [
+        "starts_mid_scene",
+        "weak_ending"
+      ],
+      "flags": [],
+      "trim_applied": false,
+      "ends_at_episode_end": false,
+      "end_refined": false,
+      "original_end_ts": null,
+      "original_duration_s": null,
+      "status": "proposed"
+    },
+    {
+      "rank": 6,
+      "id": "acfc2cf5f488",
+      "kind": "single",
+      "segments": [
+        {
+          "episode": 1,
+          "start_s": 37.4,
+          "end_s": 68.4,
+          "start_ts": "00:37.40",
+          "end_ts": "01:08.40"
+        }
+      ],
+      "total_duration_s": 31.0,
+      "hook": {
+        "beat_id": "E001-S02-B005",
+        "episode": 1,
+        "ts": "00:37.40",
+        "kind": "dialogue",
+        "speaker": "PRIYA",
+        "text": "Wiped by who?"
+      },
+      "cliffhanger": {
+        "beat_id": "E001-S03-B003",
+        "episode": 1,
+        "ts": "01:03.40",
+        "kind": "dialogue",
+        "speaker": "THEO",
+        "text": "Because Friday's login did not come from your desk. It came from the CFO's office."
+      },
+      "why": "Strong cliffhanger with the IT worker offering help, but the opening lacks immediate high stakes.",
+      "post_first_because": "#6: it makes sense to a newcomer (8/10) and ends on an unresolved cliffhanger (6/10). Weakest point: intensity (4/10).",
+      "scores": {
+        "hook": 5.28,
+        "cliffhanger": 6.44,
+        "clarity": 7.7,
+        "intensity": 4.2,
+        "spoiler_risk": 5.0,
+        "coherence": null,
+        "rule_hook": 5.917,
+        "rule_cliffhanger": 2.812,
+        "rule_intensity": 0.0,
+        "rule_clarity": 6.0,
+        "llm_hook": 5.0,
+        "llm_cliffhanger": 8.0,
+        "llm_intensity": 6.0,
+        "llm_clarity": 8.0,
+        "rerank_rank": 5
+      },
+      "rule_score": 3.955,
+      "final_score": 5.469,
+      "confidence": 0.812,
+      "risks": [
+        "starts_mid_scene",
+        "weak_ending"
+      ],
+      "flags": [],
+      "trim_applied": false,
+      "ends_at_episode_end": false,
+      "end_refined": true,
+      "original_end_ts": "01:02.90",
+      "original_duration_s": 25.5,
+      "status": "proposed"
+    }
+  ]
+}

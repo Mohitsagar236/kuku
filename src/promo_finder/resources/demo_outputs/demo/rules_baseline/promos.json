@@ -1,0 +1,409 @@
+{
+  "show": "The Quarterly Close - Sample Story",
+  "variant": "rules_baseline",
+  "generated_at": "2026-11-08T19:30:57",
+  "model": "rules-only (no LLM)",
+  "partial": false,
+  "promos": [
+    {
+      "rank": 1,
+      "id": "3c5ba036440b",
+      "kind": "single",
+      "segments": [
+        {
+          "episode": 2,
+          "start_s": 36.3,
+          "end_s": 60.3,
+          "start_ts": "00:36.30",
+          "end_ts": "01:00.30"
+        }
+      ],
+      "total_duration_s": 24.0,
+      "hook": {
+        "beat_id": "E002-S02-B004",
+        "episode": 2,
+        "ts": "00:36.30",
+        "kind": "dialogue",
+        "speaker": "PRIYA",
+        "text": "Then who has your keycard?"
+      },
+      "cliffhanger": {
+        "beat_id": "E002-S03-B003",
+        "episode": 2,
+        "ts": "00:57.70",
+        "kind": "dialogue",
+        "speaker": "DENNIS",
+        "text": "Then get it. Whatever it costs."
+      },
+      "why": "Rule-based pick: opening has hook cues (pulls); cuts at the episode's end.",
+      "post_first_because": "Post first because it opens with a strong hook (8/10) and makes sense to a newcomer (4/10). Weakest point: intensity (2/10).",
+      "scores": {
+        "hook": 7.92,
+        "cliffhanger": 2.5,
+        "clarity": 4.0,
+        "intensity": 1.67,
+        "spoiler_risk": null,
+        "coherence": null,
+        "rule_hook": 7.917,
+        "rule_cliffhanger": 2.5,
+        "rule_intensity": 1.667,
+        "rule_clarity": 4.0,
+        "llm_hook": null,
+        "llm_cliffhanger": null,
+        "llm_intensity": null,
+        "llm_clarity": null,
+        "rerank_rank": null
+      },
+      "rule_score": 4.496,
+      "final_score": 4.198,
+      "confidence": 0.15,
+      "risks": [
+        "starts_mid_scene",
+        "many_speakers"
+      ],
+      "flags": [
+        "rule_fallback_main",
+        "rule_fallback_clarity"
+      ],
+      "trim_applied": false,
+      "ends_at_episode_end": true,
+      "end_refined": false,
+      "original_end_ts": null,
+      "original_duration_s": null,
+      "status": "proposed"
+    },
+    {
+      "rank": 2,
+      "id": "acfc2cf5f488",
+      "kind": "single",
+      "segments": [
+        {
+          "episode": 1,
+          "start_s": 37.4,
+          "end_s": 62.9,
+          "start_ts": "00:37.40",
+          "end_ts": "01:02.90"
+        }
+      ],
+      "total_duration_s": 25.5,
+      "hook": {
+        "beat_id": "E001-S02-B006",
+        "episode": 1,
+        "ts": "00:39.50",
+        "kind": "dialogue",
+        "speaker": "DENNIS",
+        "text": "You are being terminated, effective this minute."
+      },
+      "cliffhanger": {
+        "beat_id": "E001-S03-B002",
+        "episode": 1,
+        "ts": "01:00.30",
+        "kind": "dialogue",
+        "speaker": "PRIYA",
+        "text": "Why would you risk your job for me?"
+      },
+      "why": "Rule-based pick: opening has hook cues (you are being).",
+      "post_first_because": "#2: it makes sense to a newcomer (6/10) and opens with a strong hook (6/10). Weakest point: intensity (0/10).",
+      "scores": {
+        "hook": 5.92,
+        "cliffhanger": 2.81,
+        "clarity": 6.0,
+        "intensity": 0.0,
+        "spoiler_risk": null,
+        "coherence": null,
+        "rule_hook": 5.917,
+        "rule_cliffhanger": 2.812,
+        "rule_intensity": 0.0,
+        "rule_clarity": 6.0,
+        "llm_hook": null,
+        "llm_cliffhanger": null,
+        "llm_intensity": null,
+        "llm_clarity": null,
+        "rerank_rank": null
+      },
+      "rule_score": 3.955,
+      "final_score": 3.9,
+      "confidence": 0.15,
+      "risks": [
+        "starts_mid_scene",
+        "weak_ending"
+      ],
+      "flags": [
+        "rule_fallback_main",
+        "rule_fallback_clarity"
+      ],
+      "trim_applied": false,
+      "ends_at_episode_end": false,
+      "end_refined": false,
+      "original_end_ts": null,
+      "original_duration_s": null,
+      "status": "proposed"
+    },
+    {
+      "rank": 3,
+      "id": "6f9a92680670",
+      "kind": "single",
+      "segments": [
+        {
+          "episode": 6,
+          "start_s": 0.2,
+          "end_s": 26.9,
+          "start_ts": "00:00.20",
+          "end_ts": "00:26.90"
+        }
+      ],
+      "total_duration_s": 26.7,
+      "hook": {
+        "beat_id": "E006-S01-B000",
+        "episode": 6,
+        "ts": "00:00.20",
+        "kind": "action",
+        "speaker": null,
+        "text": "Priya kneels at a wall safe. Theo holds the flashlight in his teeth."
+      },
+      "cliffhanger": {
+        "beat_id": "E006-S01-B007",
+        "episode": 6,
+        "ts": "00:23.90",
+        "kind": "dialogue",
+        "speaker": "PRIYA",
+        "text": "You let them destroy me to bait a trap?"
+      },
+      "why": "Rule-based pick: opening has hook cues (kneels).",
+      "post_first_because": "#3: it makes sense to a newcomer (7/10) and opens with a strong hook (5/10). Weakest point: intensity (1/10).",
+      "scores": {
+        "hook": 4.75,
+        "cliffhanger": 2.5,
+        "clarity": 7.0,
+        "intensity": 0.67,
+        "spoiler_risk": null,
+        "coherence": null,
+        "rule_hook": 4.75,
+        "rule_cliffhanger": 2.5,
+        "rule_intensity": 0.667,
+        "rule_clarity": 7.0,
+        "llm_hook": null,
+        "llm_cliffhanger": null,
+        "llm_intensity": null,
+        "llm_clarity": null,
+        "rerank_rank": null
+      },
+      "rule_score": 3.688,
+      "final_score": 3.877,
+      "confidence": 0.15,
+      "risks": [
+        "weak_ending"
+      ],
+      "flags": [
+        "rule_fallback_main",
+        "rule_fallback_clarity"
+      ],
+      "trim_applied": false,
+      "ends_at_episode_end": false,
+      "end_refined": false,
+      "original_end_ts": null,
+      "original_duration_s": null,
+      "status": "proposed"
+    },
+    {
+      "rank": 4,
+      "id": "80d721afb430",
+      "kind": "single",
+      "segments": [
+        {
+          "episode": 2,
+          "start_s": 18.9,
+          "end_s": 48.4,
+          "start_ts": "00:18.90",
+          "end_ts": "00:48.40"
+        }
+      ],
+      "total_duration_s": 29.5,
+      "hook": {
+        "beat_id": "E002-S01-B006",
+        "episode": 2,
+        "ts": "00:18.90",
+        "kind": "dialogue",
+        "speaker": "THEO",
+        "text": "Dennis Hale's wife."
+      },
+      "cliffhanger": {
+        "beat_id": "E002-S02-B007",
+        "episode": 2,
+        "ts": "00:46.80",
+        "kind": "dialogue",
+        "speaker": "PRIYA",
+        "text": "What last person?"
+      },
+      "why": "Rule-based pick: highest rule score.",
+      "post_first_because": "#4: it opens with a strong hook (5/10) and makes sense to a newcomer (5/10). Weakest point: intensity (2/10).",
+      "scores": {
+        "hook": 5.42,
+        "cliffhanger": 2.5,
+        "clarity": 5.0,
+        "intensity": 2.1,
+        "spoiler_risk": null,
+        "coherence": null,
+        "rule_hook": 5.417,
+        "rule_cliffhanger": 2.5,
+        "rule_intensity": 2.095,
+        "rule_clarity": 5.0,
+        "llm_hook": null,
+        "llm_cliffhanger": null,
+        "llm_intensity": null,
+        "llm_clarity": null,
+        "rerank_rank": null
+      },
+      "rule_score": 3.835,
+      "final_score": 3.846,
+      "confidence": 0.15,
+      "risks": [
+        "starts_mid_scene",
+        "weak_ending"
+      ],
+      "flags": [
+        "rule_fallback_main",
+        "rule_fallback_clarity"
+      ],
+      "trim_applied": false,
+      "ends_at_episode_end": false,
+      "end_refined": false,
+      "original_end_ts": null,
+      "original_duration_s": null,
+      "status": "proposed"
+    },
+    {
+      "rank": 5,
+      "id": "2a3a77249f47",
+      "kind": "single",
+      "segments": [
+        {
+          "episode": 4,
+          "start_s": 19.0,
+          "end_s": 39.1,
+          "start_ts": "00:19.00",
+          "end_ts": "00:39.10"
+        }
+      ],
+      "total_duration_s": 20.1,
+      "hook": {
+        "beat_id": "E004-S01-B007",
+        "episode": 4,
+        "ts": "00:21.10",
+        "kind": "dialogue",
+        "speaker": "DENNIS",
+        "text": "Nobody takes the floor on my watch."
+      },
+      "cliffhanger": {
+        "beat_id": "E004-S01-B011",
+        "episode": 4,
+        "ts": "00:34.00",
+        "kind": "dialogue",
+        "speaker": "DENNIS",
+        "text": "Now you have done it, Marguerite."
+      },
+      "why": "Rule-based pick: cuts at the episode's end.",
+      "post_first_because": "#5: it opens with a strong hook (5/10) and makes sense to a newcomer (5/10). Weakest point: intensity (2/10).",
+      "scores": {
+        "hook": 5.42,
+        "cliffhanger": 2.5,
+        "clarity": 5.0,
+        "intensity": 1.92,
+        "spoiler_risk": null,
+        "coherence": null,
+        "rule_hook": 5.417,
+        "rule_cliffhanger": 2.5,
+        "rule_intensity": 1.917,
+        "rule_clarity": 5.0,
+        "llm_hook": null,
+        "llm_cliffhanger": null,
+        "llm_intensity": null,
+        "llm_clarity": null,
+        "rerank_rank": null
+      },
+      "rule_score": 3.808,
+      "final_score": 3.811,
+      "confidence": 0.15,
+      "risks": [
+        "starts_mid_scene"
+      ],
+      "flags": [
+        "rule_fallback_main",
+        "rule_fallback_clarity"
+      ],
+      "trim_applied": false,
+      "ends_at_episode_end": true,
+      "end_refined": false,
+      "original_end_ts": null,
+      "original_duration_s": null,
+      "status": "proposed"
+    },
+    {
+      "rank": 6,
+      "id": "be0163c4efea",
+      "kind": "single",
+      "segments": [
+        {
+          "episode": 1,
+          "start_s": 7.7,
+          "end_s": 49.5,
+          "start_ts": "00:07.70",
+          "end_ts": "00:49.50"
+        }
+      ],
+      "total_duration_s": 41.8,
+      "hook": {
+        "beat_id": "E001-S01-B002",
+        "episode": 1,
+        "ts": "00:07.70",
+        "kind": "dialogue",
+        "speaker": "PRIYA",
+        "text": "Security? For what?"
+      },
+      "cliffhanger": {
+        "beat_id": "E001-S02-B008",
+        "episode": 1,
+        "ts": "00:46.50",
+        "kind": "dialogue",
+        "speaker": "PRIYA",
+        "text": "You have done this before. Haven't you?"
+      },
+      "why": "Rule-based pick: highest rule score.",
+      "post_first_because": "#6: it makes sense to a newcomer (6/10) and opens with a strong hook (4/10). Weakest point: intensity (0/10).",
+      "scores": {
+        "hook": 4.17,
+        "cliffhanger": 2.5,
+        "clarity": 6.0,
+        "intensity": 0.0,
+        "spoiler_risk": null,
+        "coherence": null,
+        "rule_hook": 4.167,
+        "rule_cliffhanger": 2.5,
+        "rule_intensity": 0.0,
+        "rule_clarity": 6.0,
+        "llm_hook": null,
+        "llm_cliffhanger": null,
+        "llm_intensity": null,
+        "llm_clarity": null,
+        "rerank_rank": null
+      },
+      "rule_score": 3.233,
+      "final_score": 3.333,
+      "confidence": 0.15,
+      "risks": [
+        "starts_mid_scene",
+        "weak_ending"
+      ],
+      "flags": [
+        "rule_fallback_main",
+        "rule_fallback_clarity"
+      ],
+      "trim_applied": false,
+      "ends_at_episode_end": false,
+      "end_refined": false,
+      "original_end_ts": null,
+      "original_duration_s": null,
+      "status": "proposed"
+    }
+  ]
+}

@@ -25,16 +25,20 @@ def demo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
 def test_public_demo_has_sample_data_without_password(demo: TestClient) -> None:
     assert demo.get("/").status_code == 200
     runs = demo.get("/api/runs").json()
-    assert runs and all(run["model"] in {"mock/render-demo", "rules-only (no LLM)"} for run in runs)
+    assert runs and all(
+        not run["model"].startswith("mock") for run in runs
+    )  # real scores (or the rules baseline), never simulated ones
     assert not any("secret-show" in run["id"] for run in runs)
-    run = next(run for run in runs if run["model"] == "mock/render-demo")
+    run = next(run for run in runs if run["kind"] == "full")
+    assert run["model"] != "rules-only (no LLM)"
     data = demo.get("/api/run", params={"id": run["id"]}).json()
     assert data["variants"]["main"]["promos"]
     assert demo.get("/api/run?id=secret-show/secret-run").status_code == 404
 
 
 def test_demo_reviews_and_cuts_work_with_correct_origin(demo: TestClient) -> None:
-    run = next(run for run in demo.get("/api/runs").json() if run["model"] == "mock/render-demo")
+    run = next(run for run in demo.get("/api/runs").json() if run["kind"] == "full")
+    assert not run["model"].startswith("mock")
     data = demo.get("/api/run", params={"id": run["id"]}).json()
     promo = data["variants"]["main"]["promos"][0]
     origin = {"Origin": "https://promo-demo.onrender.com"}
