@@ -330,3 +330,36 @@ def test_reviews_from_separate_processes_do_not_lose_updates(env) -> None:
                 worker.terminate()
                 worker.join(timeout=5)
         result.close()
+
+
+def test_server_refuses_nudges_that_cut_out_the_hook_or_cliffhanger(env, port) -> None:
+    """Regression: a start nudge past the hook (and an end before the cliffhanger) was accepted."""
+    from promo_finder.evaluation import feedback as fb
+    from promo_finder.ingestion import load_show
+
+    show = load_show(env["show_dir"])
+    url = f"/api/nudge?id={env['run_id']}"
+    checked = 0
+    for i, p in enumerate(env["promos"]):
+        seg = p["segments"][0]
+        beats = {b.id: b for ep in show.episodes for b in ep.beats}
+        hook, cliff = beats[p["hook"]["beat_id"]], beats[p["cliffhanger"]["beat_id"]]
+        ep = show.episode(seg["episode"])
+        plain = [fb.FSeg(episode=seg["episode"], start_s=seg["start_s"], end_s=seg["end_s"])]
+        # a start after the hook that is otherwise a perfectly valid cut
+        late = [b.start_s for b in ep.beats if b.start_s > hook.start_s + 0.01]
+        bad_start = next((t for t in late if fb.nudge(show, plain, 0, "start", to=t).ok), None)
+        if bad_start is not None and len(p["segments"]) == 1:
+            code, err = call(port, "POST", url, rv(env, i, segment=0, edge="start", to=bad_start))
+            assert code == 422 and any("hook" in r for r in err["reasons"])
+            assert all(s["t"] <= hook.start_s + 1e-6 for s in err["suggestions"])
+            assert not env["fb"].exists()  # nothing saved
+            checked += 1
+        early = [b.end_s for b in ep.beats if b.end_s < cliff.end_s - 0.01]
+        bad_end = next((t for t in early if fb.nudge(show, plain, 0, "end", to=t).ok), None)
+        if bad_end is not None and len(p["segments"]) == 1:
+            code, err = call(port, "POST", url, rv(env, i, segment=0, edge="end", to=bad_end))
+            assert code == 422 and any("cliffhanger" in r for r in err["reasons"])
+            assert all(s["t"] >= cliff.end_s - 1e-6 for s in err["suggestions"])
+            checked += 1
+    assert checked >= 2, "the synthetic run offered no cut that tests the anchors"

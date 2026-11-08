@@ -150,6 +150,8 @@ class PromoView:
     id: str
     segs: tuple[FSeg, ...]
     score: float | None = None
+    hook_beat_id: str | None = None  # the cut must keep these two moments (see Anchors)
+    cliff_beat_id: str | None = None
 
 
 def promo_views(promos: Sequence[Any]) -> list[PromoView]:
@@ -168,7 +170,20 @@ def promo_views(promos: Sequence[Any]) -> list[PromoView]:
             )
             for s in g("segments")
         )
-        out.append(PromoView(int(g("rank")), str(g("id")), segs, g("final_score")))
+
+        def beat_id(k: str, item: Any = p) -> str | None:
+            m = item.get(k) if isinstance(item, dict) else getattr(item, k, None)
+            b = (
+                (m.get("beat_id") if isinstance(m, dict) else getattr(m, "beat_id", None))
+                if m
+                else None
+            )
+            return str(b) if b else None
+
+        out.append(
+            PromoView(int(g("rank")), str(g("id")), segs, g("final_score"),
+                      beat_id("hook"), beat_id("cliffhanger"))
+        )  # fmt: skip
     return out
 
 
@@ -226,6 +241,9 @@ _WHY = {
     "no_hook_in_first_window": "leaves nothing starting in the first 3 s to hook the viewer",
     "segment_too_short": "would make a segment shorter than 3 s",
     "out_of_order": "would put the segments out of order",
+    "hook_cut": "would start after the hook, cutting it out of the clip",
+    "hook_late": "would push the hook beyond the first 3 s of the clip",
+    "cliff_cut": "would end before the cliffhanger, cutting it out of the clip",
 }
 
 
@@ -256,6 +274,46 @@ def _violations(show: Show, segs: Sequence[FSeg]) -> list[str]:
     return validate_segments(show, cuts)
 
 
+@dataclass(frozen=True)
+class Anchors:
+    """The moments a promo is built around: the hook (must stay in the first 3 s of the first
+    segment) and the cliffhanger (must stay inside the last segment). A cut that drops either
+    is never allowed, as a nudge or as a suggested alternative."""
+
+    hook_ep: int
+    hook_start: float
+    cliff_ep: int
+    cliff_end: float
+
+
+def anchors_for(show: Show, view: PromoView | None) -> Anchors | None:
+    if view is None or not view.hook_beat_id or not view.cliff_beat_id:
+        return None
+    beats = {b.id: b for ep in show.episodes for b in ep.beats}
+    h, c = beats.get(view.hook_beat_id), beats.get(view.cliff_beat_id)
+    if h is None or c is None:
+        return None
+    return Anchors(h.episode_number, h.start_s, c.episode_number, c.end_s)
+
+
+HOOK_WINDOW_S = 3.0
+
+
+def _anchor_errors(segs: Sequence[FSeg], a: Anchors | None) -> list[str]:
+    if a is None or not segs:
+        return []
+    out = []
+    first, last = segs[0], segs[-1]
+    if first.episode == a.hook_ep:
+        if first.start_s > a.hook_start + 1e-6:
+            out.append("anchor:hook_cut")
+        elif a.hook_start - first.start_s > HOOK_WINDOW_S + 1e-6:
+            out.append("anchor:hook_late")
+    if last.episode == a.cliff_ep and last.end_s < a.cliff_end - 1e-6:
+        out.append("anchor:cliff_cut")
+    return out
+
+
 def nudge(
     show: Show,
     segs: Sequence[FSeg],
@@ -263,10 +321,12 @@ def nudge(
     edge: str,
     delta: float | None = None,
     to: float | None = None,
+    anchors: Anchors | None = None,
 ) -> NudgeResult:
     """Move one cut point by ``delta`` seconds (or to ``to``) and re-validate with the SAME
     rules the tool delivers under (beat boundaries, not inside a line, 20-60 s, hook in the
-    first 3 s). Invalid: nothing changes and the nearest valid cut points are suggested."""
+    first 3 s) and, when ``anchors`` are given, keeps the promo's hook and cliffhanger inside
+    the cut. Invalid: nothing changes and the nearest valid cut points are suggested."""
     if edge not in ("start", "end") or not 0 <= index < len(segs):
         raise FeedbackError("nudge needs a segment index and edge 'start' or 'end'")
     if (delta is None) == (to is None):
@@ -283,7 +343,12 @@ def nudge(
 
     if target < 0:
         return NudgeResult(False, cur, ["would go before the start of the episode"])
-    errors = _violations(show, with_edge(target))
+
+    def problems(t: float) -> list[str]:
+        cut = with_edge(t)
+        return _violations(show, cut) + _anchor_errors(cut, anchors)
+
+    errors = problems(target)
     if not errors:
         return NudgeResult(True, with_edge(target))
 
@@ -291,7 +356,7 @@ def nudge(
     cands = sorted(
         {round(b.start_s if edge == "start" else b.end_s, 3) for b in (ep.beats if ep else [])}
     )
-    valid = [t for t in cands if abs(t - old) > 1e-3 and not _violations(show, with_edge(t))]
+    valid = [t for t in cands if abs(t - old) > 1e-3 and not problems(t)]
     nearest = sorted(valid, key=lambda t: (abs(t - target), t))[:2]
     return NudgeResult(False, cur, _plain(errors), sorted(nearest))
 

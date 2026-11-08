@@ -178,7 +178,10 @@ class EditorService:
                         raise EditorError(400, "give exactly one number: delta or to")
                     cur = fb.find_entry(entries, view)
                     segs = list(cur.segments) if cur else list(view.segs)
-                    res = fb.nudge(show, segs, idx, edge, b.get("delta"), b.get("to"))
+                    res = fb.nudge(
+                        show, segs, idx, edge, b.get("delta"), b.get("to"),
+                        anchors=fb.anchors_for(show, view),
+                    )  # fmt: skip
                     if not res.ok:
                         raise EditorError(
                             422,
