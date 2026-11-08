@@ -418,11 +418,8 @@ def build_report(r: ReportInput) -> str:
     L += ["## 9. Where the tool picks badly", "",
           "Detected automatically on the delivered promos; examples are real rows from this run.", ""]  # fmt: skip
     n = max(1, len(promos))
-    end_bias = [
-        p
-        for p in promos
-        if any(f.cand.id == p.id and f.cand.signals.ends_at_episode_end for f in r.result.selected)
-    ]
+    # the delivered cut (after end refinement), not the candidate's original end
+    end_bias = [p for p in promos if p.ends_at_episode_end]
     ctx_dep = [
         p
         for p in promos
@@ -466,12 +463,15 @@ def build_report(r: ReportInput) -> str:
     # 10. cost
     L += ["## 10. Tokens and cost", ""]
     bt = r.llm_summary.get("by_task", {})
-    live = max(1, st.get("score_live", 0))
+    live = st.get("score_live", 0)
     sc = bt.get("score", {})
-    if sc:
+    if sc and live:
         per = sc["tokens_out"] / live
         L.append(f"- Scoring output tokens per candidate (measured, incl. retries): **{per:.0f}** "
                  f"vs the {r.est_out_tokens_per_candidate} assumed in planning.")  # fmt: skip
+    elif st.get("score_cached", 0):
+        L.append("- Scoring output tokens per candidate: not measurable in this run (every main-ranking "
+                 "answer came from the response cache); the calls below are from phases scored fresh.")  # fmt: skip
     for task, v in bt.items():
         L.append(
             f"- {task}: {int(v['calls'])} calls, {int(v['tokens_in']):,} in / {int(v['tokens_out']):,} out"

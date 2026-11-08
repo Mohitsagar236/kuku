@@ -113,3 +113,19 @@ def test_smoke_writes_a_summary_and_compare_prints_two_models_side_by_side(
         assert needle in out, needle
     assert list((tmp_path / "o").glob("*/model_comparison-*.md"))
     assert main(["compare", str(tmp_path), str(runs[1])]) == 2  # missing summary -> clean error
+
+
+def test_unknown_provider_is_a_clean_error_not_a_traceback(
+    show_dir: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rc = main(["run", str(show_dir), "--provider", "bogus", "--out", str(tmp_path / "o")])
+    assert rc == 2
+    assert "unknown LLM provider 'bogus'" in capsys.readouterr().err
+    assert not (tmp_path / "o").exists()  # failed before writing anything
+
+
+def test_runs_in_the_same_second_never_share_a_folder(tmp_path: Path) -> None:
+    from promo_finder_cli.pipeline import _reserve_dir
+
+    dirs = [_reserve_dir(tmp_path, "20260101-000000") for _ in range(3)]
+    assert [d.name for d in dirs] == ["20260101-000000", "20260101-000000-2", "20260101-000000-3"]

@@ -161,3 +161,18 @@ def test_loader_duplicates_and_oversize(tmp_path: Path) -> None:
         "file_too_large",
         "low_dialogue_ratio",  # the tiny fixture has no dialogue
     }
+
+
+def test_loader_rejects_a_folder_with_no_screenplay_text(tmp_path: Path) -> None:
+    (tmp_path / "notes.txt").write_text("hello, these are my notes\n")
+    with pytest.raises(IngestionError, match="no parseable episodes.*no timestamped"):
+        load_show(tmp_path)
+
+
+def test_loader_skips_a_stray_non_screenplay_file_and_warns(tmp_path: Path) -> None:
+    (tmp_path / "README.txt").write_text("not a screenplay\n")
+    for f in FIX.glob("*.txt"):
+        (tmp_path / f.name).write_bytes(f.read_bytes())
+    show = load_show(tmp_path)
+    assert [e.number for e in show.episodes] == [1, 2, 3]
+    assert "no_beats" in {w.code for w in show.warnings}

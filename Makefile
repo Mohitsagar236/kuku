@@ -1,7 +1,7 @@
 PY ?= .venv/bin/python
 SHOW_DIR ?=
 
-.PHONY: install test lint fmt typecheck check ingest-check candidates run run-rules smoke package-outputs check-confidential
+.PHONY: ui install test lint fmt typecheck check ingest-check candidates run run-rules smoke package-outputs check-confidential
 
 install:
 	python3.12 -m venv .venv
@@ -52,3 +52,8 @@ package-outputs:
 # Fails if any file git would commit contains a long passage from the input folder
 check-confidential:
 	$(PY) -m promo_finder_cli check-confidential "$(SHOW_DIR)"
+
+# React viewer for outputs/ (local only, no build step): http://127.0.0.1:8765
+PORT ?= 8765
+ui:
+	$(PY) frontend/server.py --port $(PORT)

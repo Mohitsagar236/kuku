@@ -105,3 +105,27 @@ Format: what the AI got wrong -> how it was caught -> fix.
     instead of the run directory; it only passed by directory-order luck. Fixed.
 30. **Missing observability:** the 3 transient retries in the smoke log did not say which error
     occurred. Added the error type to the retry log.
+
+## Audit pass on the viewer and CLI (2026-11-08)
+
+31. **Two runs in the same second overwrote each other.** Run folders were named by
+    `strftime("%Y%m%d-%H%M%S")` with `mkdir(exist_ok=True)`, so a second run in the same second
+    wrote into the first run's folder. An existing e2e test had been failing on this. Fixed with an
+    atomic `mkdir` that adds `-2`, `-3`; regression test added.
+32. **A folder of non-screenplay `.txt` files "succeeded" with 0 promos** instead of saying the
+    input was wrong. The loader now skips beat-less files with a `no_beats` warning and fails
+    clearly if nothing parses.
+33. **Unknown `--provider` / `LLM_PROVIDER` crashed with a traceback.** Now a one-line error, exit 2.
+34. **The first viewer had no loading/empty/error states** (it showed "No promos." while loading
+    and one failed request blanked the app), raw-Markdown report, mouse-only list, and a server
+    that dropped the connection on a corrupt JSON file and answered any Host header (DNS
+    rebinding could read the confidential outputs). All fixed, 15 server tests added.
+35. **My own mistakes during that fix:** (a) server functions took `OUTPUTS` as a default
+    argument, bound at import, so tests that patched it silently read the real folder (caught by
+    the tests); (b) my mobile CSS override sat before the base rule and lost the cascade (caught
+    in a headless-Chrome screenshot, not by any test).
+36. **The quality report contradicted itself** (found while writing the solution doc, this pass by
+    Claude Opus 5.5): §9 counted episode-ending promos on the *pre-refinement* candidate (14/30)
+    while §6 used the delivered cut (1/30, correct); and "tokens per candidate" divided by
+    `max(1, live calls)`, printing a phase total when every main answer came from the cache. Both
+    fixed with regression tests; the delivered run's raw outputs were left unedited.

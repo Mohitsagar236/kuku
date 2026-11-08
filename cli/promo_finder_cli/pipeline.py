@@ -243,6 +243,23 @@ def run_stability(
     return rep
 
 
+def _reserve_dir(parent: Path, name: str) -> Path:
+    """Create a fresh run folder; two runs in the same second get name, name-2, name-3...
+
+    mkdir(exist_ok=False) makes the claim atomic, so a second run can never write
+    into (and silently overwrite) an earlier run's outputs.
+    """
+    parent.mkdir(parents=True, exist_ok=True)
+    for i in range(1, 1000):
+        d = parent / (name if i == 1 else f"{name}-{i}")
+        try:
+            d.mkdir()
+            return d
+        except FileExistsError:
+            continue
+    raise RuntimeError(f"could not reserve an output folder for {name} under {parent}")
+
+
 def run_pipeline(
     show_dir: str | Path,
     opts: RunOptions,
@@ -256,7 +273,9 @@ def run_pipeline(
     scfg, rcfg = load_scoring_config(), load_ranking_config()
     show = load_show(show_dir, episodes=opts.episodes)
     stamp = time.strftime("%Y%m%d-%H%M%S")
-    out_dir = opts.out_root / show.slug / (f"smoke-{stamp}" if opts.mode == "smoke" else stamp)
+    out_dir = _reserve_dir(
+        opts.out_root / show.slug, f"smoke-{stamp}" if opts.mode == "smoke" else stamp
+    )
     if llm is None:
         llm = build_llm(settings, raw_dir=out_dir / "llm_raw", persist=opts.persist_cache)
     elif llm.raw_dir is None:

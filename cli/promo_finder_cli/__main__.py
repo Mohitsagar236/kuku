@@ -19,6 +19,7 @@ from promo_common.confidential import build_shingles, scan_repo
 from promo_common.config import get_settings
 from promo_common.errors import IngestionError
 from promo_common.llm import LLMAuthError, LLMSettings
+from promo_common.llm.factory import PROVIDERS
 from promo_common.logging import setup_logging
 
 from promo_finder_cli.compare import compare_runs
@@ -162,6 +163,13 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     settings = _settings(args)
+    if settings.provider.lower() not in PROVIDERS:  # --provider or LLM_PROVIDER in .env
+        print(
+            f"error: unknown LLM provider {settings.provider!r}; choose one of "
+            f"{', '.join(PROVIDERS)}",
+            file=sys.stderr,
+        )
+        return 2
     try:
         episodes = parse_episode_spec(args.episodes)
     except IngestionError as e:

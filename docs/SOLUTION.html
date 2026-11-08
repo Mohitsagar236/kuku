@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Promo Finder: Solution</title>
+<style>
+  @page { size: A4; margin: 10mm 13mm 9mm; }
+  * { box-sizing: border-box; }
+  body { font: 9pt/1.34 "Helvetica Neue", Helvetica, Arial, sans-serif; color: #16191d; margin: 0; }
+  h1 { font-size: 15.5pt; margin: 0; letter-spacing: -.01em; }
+  .sub { color: #555; margin: 1mm 0 2.5mm; font-size: 8.8pt; }
+  h2 { font-size: 10.4pt; margin: 3mm 0 1mm; padding-bottom: .6mm; border-bottom: .3mm solid #c2410c; color: #111; }
+  p { margin: 0 0 1.3mm; }
+  ul, ol { margin: 0 0 1.3mm; padding-left: 4.6mm; }
+  li { margin: 0 0 .5mm; }
+  table { border-collapse: collapse; width: 100%; margin: .6mm 0 1.6mm; font-size: 8.5pt; }
+  th, td { text-align: left; vertical-align: top; padding: .7mm 1.4mm; border-bottom: .2mm solid #ddd; }
+  th { background: #f4f1ee; font-weight: 600; }
+  code { font: 8.2pt Menlo, monospace; background: #f3f3f3; padding: 0 .6mm; border-radius: .6mm; }
+  .formula { font: 8.1pt/1.4 Menlo, monospace; background: #f6f6f6; padding: 1.2mm 2mm; margin: .6mm 0 1.4mm; border-radius: 1mm; white-space: pre; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+  .note { color: #555; font-size: 8.4pt; }
+  .page-break { break-before: page; }
+  b { font-weight: 600; }
+  h2 { break-after: avoid; }
+  li, tr { break-inside: avoid; }
+  td:nth-child(2) { white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<h1>Promo Finder: ranked promos from a microdrama screenplay</h1>
+<div class="sub">Kuku AI Generalist assignment · Problem 1 (Find the Promos) · prototype: Python repo with run steps in <code>README.md</code></div>
+
+<h2>1. Problem and why I picked it</h2>
+<p>An editor today watches every episode and picks 20–60 s promo moments by hand, one show at a time, while new shows ship every week. A good promo opens on a hook in its first 3 seconds, ends on an unresolved cliffhanger, and makes sense to a stranger. I chose this problem because its output can be checked: every promo is an episode plus start and end timestamps that an editor can open and judge in seconds.</p>
+
+<h2>2. Assumptions (where the brief was silent)</h2>
+<ul>
+  <li>The input is the screenplay text only: no video or audio. Script timestamps are assumed close enough to the video for an editor to fine-tune.</li>
+  <li>The tool <b>proposes</b> and an editor <b>decides</b>. It ranks a shortlist of 30 promos with reasons and flags, not a single "best" clip.</li>
+  <li>A promo has 1–3 segments, total length 20–60 s. Stitched segments come from the same or adjacent episodes, so they stay understandable.</li>
+  <li>Variety matters when posting: at most 2 promos per episode, 1 per scene and 5 per block of 5 episodes, so the list is not one story arc repeated.</li>
+  <li>Free tiers only, and the model must be swappable without code changes, as the brief asks.</li>
+</ul>
+
+<h2>3. Solution and core workflow</h2>
+<p>One command (<code>make run SHOW_DIR=…</code>) runs five stages and writes <code>promos.json</code>, <code>promos.csv</code>, <code>ranking.md</code> and <code>quality_report.md</code>. A free rules-only mode (<code>make run-rules</code>) needs no API key. A local read-only viewer (<code>make ui</code>) lets an editor step through the ranking, copy a promo's timestamps, download the CSV and read the quality report.</p>
+<ol>
+  <li><b>Parse:</b> each episode file becomes a timeline of timestamped beats (scene, dialogue, action). Malformed lines produce warnings, not crashes.</li>
+  <li><b>Generate candidates (code):</b> every 20–60 s window that starts and ends on a beat boundary (never mid-line) is a candidate (39,354 for this pack). Rule signals score the hook (first 3 s only), the cliffhanger and intensity from a keyword lexicon (slaps, reveals, threats, accusations, ending cues, resolution phrases). The tool removes overlapping windows (non-maximum suppression, overlap &gt; 0.5), drops "previously on" recaps and builds a few stitched hook-plus-cliffhanger pairs. The top 8 per episode plus 40 stitched candidates go to the LLM.</li>
+  <li><b>Score (LLM, cascaded):</b> batches of 8 candidates are scored 0–10 on hook, cliffhanger, intensity and spoiler risk against fixed anchors. The model answers only with <i>beat IDs</i> from the clip, never free-text timestamps, so it cannot invent a cut. The top 60 then get a <i>blind</i> clarity check: the model sees only the clip, as a stranger would. It can also pick a stronger unresolved end point, which is re-validated by code.</li>
+  <li><b>Rank (code + LLM):</b> rule and LLM scores are blended, hard gates are applied, and caps and de-duplication enforce variety. A listwise LLM rerank of the top 30 runs twice, the second time with the order reversed to cancel position bias.</li>
+  <li><b>Evaluate (code):</b> the quality report covers validation counts, score distributions, LLM-vs-rule disagreement, a rules-only baseline, two ablations, failure modes with real examples, and tokens.</li>
+</ol>
+
+<h2>4. Architecture, tools, and what is AI vs code</h2>
+<table>
+  <tr><th>Part</th><th>Done by</th><th>Implementation</th></tr>
+  <tr><td>Parsing, candidate search, rule signals, caps, validation of every cut</td><td>Code</td><td>Python 3.12, Pydantic schemas; YAML config and keyword lexicon (<code>config/</code>). A cut that breaks a rule is never delivered.</td></tr>
+  <tr><td>Hook, cliffhanger, intensity, spoiler, blind clarity, end choice, rerank</td><td>LLM</td><td>Versioned prompts in <code>prompts/</code>; JSON answers validated, then retried on failure</td></tr>
+  <tr><td>Provider layer</td><td>Code</td><td>Gemini, Groq, Anthropic, OpenAI, Ollama, mock or none, chosen only via <code>.env</code>. Includes a response cache (re-runs resume and are not re-billed), a rate limiter with per-minute and per-day quotas, and call and USD budgets.</td></tr>
+  <tr><td>Final choice of what to post</td><td>Editor</td><td>Viewer and CSV; each promo carries reasons, flags and a confidence value</td></tr>
+</table>
+<p class="note">The model used for the delivered run was Gemini <code>gemini-3.5-flash-lite</code> (free tier). Swapping in a stronger model is a two-line <code>.env</code> change (<code>LLM_PROVIDER</code>, <code>LLM_MODEL</code>).</p>
+
+<h2>5. Identification and ranking method</h2>
+<div class="formula">dim   = 0.7·LLM + 0.3·rule            (clarity: 0.85·LLM + 0.15·rule)
+score = 0.3·hook + 0.3·cliffhanger + 0.2·clarity + 0.2·intensity − 0.05·spoiler_risk
+final = 0.5·score + 0.5·listwise rerank score        (top 30 only; stitched promos discounted by coherence)</div>
+<ul>
+  <li><b>Hard gates:</b> a promo is never delivered if the LLM scores its hook or its delivered ending below 5/10. The gates removed 117 of 428 candidates after the first pass and 2 more after blind scoring.</li>
+  <li><b>Post-first order</b> is the final score. Each promo states its hook beat, its cliffhanger beat, why it works, and why to post it early (its strongest dimensions).</li>
+  <li><b>Confidence</b> is higher when the rules and the LLM agree. Flags such as <i>needs context</i>, <i>weak ending</i>, <i>dead air</i> or <i>high spoiler risk</i> tell the editor what to check.</li>
+</ul>
+
+<h2>6. How the output answers the brief</h2>
+<table>
+  <tr><th>Brief asks for</th><th>Where it is</th></tr>
+  <tr><td>Promos across all episodes, with the episode and start/end of every segment, in order</td><td><code>segments[]</code> in <code>promos.json</code>/<code>.csv</code>; 30 promos drawn from 27 of the 50 episodes</td></tr>
+  <tr><td>The hook, the cliffhanger, one line on why it works</td><td><code>hook</code>, <code>cliffhanger</code> (the beat, timestamp and line), <code>why</code></td></tr>
+  <tr><td>Rank them: which to post first and why</td><td><code>rank</code>, <code>post_first_because</code>, <code>ranking.md</code></td></tr>
+  <tr><td>Check quality: where does it pick badly?</td><td><code>quality_report.md</code> §9 and section 8 below</td></tr>
+</table>
+
+<h2>7. How I know it is good: testing and validation</h2>
+<div class="two">
+<div>
+<p><b>Full run on the 50-episode pack</b> (Gemini, rules + LLM):</p>
+<ul>
+  <li>3,727 beats parsed → 39,354 windows → 428 candidates scored → 60 fully scored → 30 delivered.</li>
+  <li>0 of 30 failed final validation; lengths run from 20.3 to 57.9 s.</li>
+  <li>End refinement moved the end of 23 of the 30 promos to a stronger unresolved cut.</li>
+  <li>The top 10 come from 10 different episodes.</li>
+  <li>Rules vs LLM: Spearman correlation 0.46. On cliffhangers they differ by 4+ points 35% of the time, which is why the LLM carries most of the weight.</li>
+</ul>
+</div>
+<div>
+<p><b>Robustness checks</b>:</p>
+<ul>
+  <li><b>Rules-only baseline:</b> only 4 of its top 10 overlap the LLM's top 10. 7 of the rules' top 10 just end at an episode's end, against 1 of 10 for the LLM run.</li>
+  <li><b>Ablations:</b> removing the writer's literal "cliffhanger" annotations keeps 7/10 of the top 10 (moderate dependence). Removing the episode-end prior keeps 5/10.</li>
+  <li><b>Smoke runs</b> (3 episodes, real API): 10–12 calls; 74–105 output tokens per candidate; 0 invalid JSON and 0 truncated replies after the fixes.</li>
+  <li><b>Engineering:</b> 238 automated tests (mock LLM, synthetic scripts), 96% line coverage, lint and type checks, plus a scan that fails if any 8-word script passage is in a committable file.</li>
+</ul>
+</div>
+</div>
+<p class="note">What I have <b>not</b> measured: agreement with a human editor. <code>golden.yaml</code> (label about 10 promos, then the report scores precision@10) is built but not yet labelled. The temperature-0 stability re-score exists but was not run on the full pack.</p>
+
+<h2>8. Where it picks badly, limitations and next steps</h2>
+<ul>
+  <li><b>Needs backstory:</b> the tool's own flags mark 23 of 30 promos as needing context for a stranger. This is the biggest weakness.</li>
+  <li><b>Spoilers:</b> 4 of 30 reveal an outcome a promo should only tease. <b>Dead air:</b> 3 of 30 contain a long silent stretch.</li>
+  <li><b>Script-only:</b> slaps, stings and faces are inferred from text, and the LLM judge favours loud melodrama, so a quiet but effective hook scores low.</li>
+  <li><b>Single judge:</b> one model scores everything. The flags above are the model's own judgement, not human-verified. None of the 40 stitched candidates made the final 30, so multi-moment promos are untested in practice.</li>
+  <li><b>A reporting bug I found and fixed late:</b> the delivered run's report states two figures wrongly. It says 14 of 30 promos end at an episode's end; the correct count, after end refinement, is 1 of 30. Its "tokens per candidate" line divides a phase total by zero live calls. The code is fixed and tested. The raw outputs were left unedited.</li>
+</ul>
+<p><b>Scale and cost.</b> Candidate generation is pure code: about 13 s for 50 episodes on an 8 GB laptop with no LLM. By construction one show needs about 70 LLM calls for the main ranking (428 candidates in batches of 8, stitched in batches of 5, clarity in batches of 6, 2 rerank passes), at about 2,200 input tokens per scoring call. That is within the 200 requests/day limit configured for the free-tier key used here, and the cache means an interrupted run resumes without re-billing. At catalogue scale it runs per show as a batch job; paid-model cost is calls × token price, capped by per-run budgets. <b>Next:</b> label a golden set with an editor; feed a short show premise into the blind clarity check to cut false "needs context" flags; try a stronger judge model through the same <code>.env</code> switch; track which posted promos actually perform and fit the weights to that data.</p>
+
+<h2>9. AI tools used, and one place they got it wrong</h2>
+<p>Claude Code (Claude Sonnet 5.5, with Claude Opus 5.5 for the final audit) wrote most of the code under my design decisions and review. The real run used Gemini. Each mistake and its fix is logged in <code>AI_USAGE.md</code> (36 entries). <b>One place it got it wrong:</b> it matched the model's candidate IDs case-sensitively. Gemini answered <code>"C1"</code> where the code expected <code>c1</code>. The mock LLM always answered in lowercase, so all 169 tests passed, but the first real smoke run rejected 11 of 36 answers. The fix was case-insensitive matching plus a regression test. The second smoke run had 0 rejections.</p>
+
+</body>
+</html>

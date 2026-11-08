@@ -192,3 +192,25 @@ def test_rules_only_mode_needs_no_llm(
     assert doc["partial"] is True and doc["promos"]
     assert all("rule_fallback_main" in p["flags"] for p in doc["promos"])
     assert "rules-only" in (out / "quality_report.md").read_text().lower()
+
+
+def test_report_counts_episode_endings_on_the_delivered_cut(show_dir: Path, tmp_path: Path) -> None:
+    """Section 9 must agree with section 6: end refinement can move an end off the episode end."""
+    import re
+
+    res = run(show_dir, tmp_path, ablation=False, stability=False)
+    rep = (write_all(res) / "quality_report.md").read_text()
+    promos = res.main.result.promos
+    m = re.search(r"\*\*Episode-ending bias\*\*: (\d+) of (\d+)", rep)
+    assert m and int(m.group(1)) == sum(p.ends_at_episode_end for p in promos)
+
+
+def test_report_does_not_invent_tokens_per_candidate_on_a_fully_cached_run(
+    show_dir: Path, tmp_path: Path
+) -> None:
+    cache = MemoryCache()
+    run(show_dir, tmp_path / "a", llm=make_llm(cache=cache), ablation=False, stability=False)
+    res = run(show_dir, tmp_path / "b", llm=make_llm(cache=cache), ablation=False, stability=False)
+    rep = (write_all(res) / "quality_report.md").read_text()
+    assert "not measurable in this run" in rep
+    assert "tokens per candidate (measured" not in rep

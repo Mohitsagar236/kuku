@@ -78,6 +78,14 @@ def load_show(
         )
         if episodes is not None and ep.number not in episodes:
             continue
+        if not ep.beats:  # not a screenplay (notes, README...): never score an empty episode
+            warnings.append(
+                ParseWarning(
+                    code="no_beats",
+                    message=f"{path.name}: no timestamped scene/dialogue/action lines, skipped",
+                )
+            )
+            continue
         digest.update(path.name.encode())
         digest.update(raw)
         if ep.number in by_number:
@@ -91,8 +99,10 @@ def load_show(
         by_number[ep.number] = ep
 
     if not by_number:
+        why = "; ".join(w.message for w in warnings[:3])
         raise IngestionError(
-            f"no matching episodes in {root}" if episodes else f"no parseable episodes in {root}"
+            (f"no matching episodes in {root}" if episodes else f"no parseable episodes in {root}")
+            + (f" ({why})" if why else "")
         )
 
     episodes = [by_number[n] for n in sorted(by_number)]
