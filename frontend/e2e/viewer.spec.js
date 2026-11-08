@@ -351,3 +351,77 @@ test("opening the page does not scroll it: the header and upload button stay in 
   await expect(items.nth(1)).toHaveAttribute("aria-current", "true");
   expect(await page.evaluate(() => scrollY)).toBe(0); // moving through the list does not jump the page
 });
+
+// --- live analysis animation ----------------------------------------------------------------
+
+const scripted = (steps) => {
+  let i = 0;
+  return (route) => {
+    const body = steps[Math.min(i, steps.length - 1)];
+    i += 1;
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+  };
+};
+const prog = (phase, extra = {}) => ({ state: "running", stage: phase, mode: "model", progress: { phase, mode: "model", model: "gemini/gemini-3.5-flash-lite", episodes: 6, calls: 0, by_task: {}, tokens_in: 0, tokens_out: 0, elapsed_s: 1, ...extra } });
+
+test("while analysing, the page animates the real phases with live call and token counts", async ({ page }) => {
+  await open(page);
+  await page.route("**/api/analyze", (route) => route.fulfill({ status: 202, contentType: "application/json", body: JSON.stringify({ job: "j".repeat(32) }) }));
+  await page.route("**/api/analyze/status*", scripted([
+    prog("reading", { episodes: 0 }),
+    prog("candidates"),
+    prog("score", { calls: 3, tokens_in: 7421, tokens_out: 512 }),
+    prog("score", { calls: 7, tokens_in: 15210, tokens_out: 1033 }),
+    prog("clarity", { calls: 9, tokens_in: 19000, tokens_out: 1500 }),
+    prog("rerank", { calls: 11, tokens_in: 21000, tokens_out: 1600 }),
+    prog("rerank", { calls: 11, tokens_in: 21000, tokens_out: 1600 }),
+  ]));
+  await page.getByRole("button", { name: "Analyze your screenplay" }).click();
+  await page.getByLabel("Episode files").setInputFiles(upload([1]));
+  await page.getByRole("button", { name: /Find promos|Analysing/ }).first().click();
+  const panel = page.locator(".aprog");
+  await expect(panel).toBeVisible();
+  await expect(panel).toHaveAttribute("data-phase", "reading");
+  await expect(panel.getByText("Reading your screenplay")).toBeVisible();
+  await expect(panel).toHaveAttribute("data-phase", "score", { timeout: 15000 });
+  await expect(panel.getByText("Gemini is judging each moment's opening hook and cliffhanger")).toBeVisible();
+  await expect(panel.locator(".aprog-step.active")).toContainText("Judge hook and cliffhanger");
+  await expect(panel.locator(".aprog-step.done")).toHaveCount(2); // read + find moments
+  await expect(panel.getByText("15,210 / 1,033")).toBeVisible({ timeout: 15000 }); // live tokens in / out
+  await expect(panel).toHaveAttribute("data-phase", "clarity", { timeout: 15000 });
+  await expect(panel.getByText("would a stranger understand")).toBeVisible();
+  await expect(panel.locator(".aprog-window")).toBeVisible(); // the scanning 20-60 s window
+  await expect(panel).toHaveAttribute("data-phase", "rerank", { timeout: 15000 });
+  await expect(panel.locator(".aprog-step.done")).toHaveCount(4);
+  await expect(panel.getByText("Model calls")).toBeVisible();
+});
+
+test("rules-only analysis shows the AI steps as skipped and no model calls", async ({ page }) => {
+  await open(page);
+  await page.route("**/api/analyze", (route) => route.fulfill({ status: 202, contentType: "application/json", body: JSON.stringify({ job: "k".repeat(32) }) }));
+  await page.route("**/api/analyze/status*", scripted([
+    { state: "running", stage: "x", mode: "rules", progress: { phase: "candidates", mode: "rules", model: "", episodes: 3, calls: 0, by_task: {}, tokens_in: 0, tokens_out: 0, elapsed_s: 1 } },
+  ]));
+  await page.getByRole("button", { name: "Analyze your screenplay" }).click();
+  await page.getByLabel("Episode files").setInputFiles(upload([1]));
+  await page.getByRole("button", { name: "Find promos" }).click();
+  const panel = page.locator(".aprog");
+  await expect(panel.locator(".aprog-step.skipped")).toHaveCount(3);
+  await expect(panel.getByText("0 (rules only)")).toBeVisible();
+  await expect(panel.getByText("no AI model is called")).toBeVisible();
+});
+
+test("the animation is announced politely and stops moving for reduced-motion users", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await open(page);
+  await page.route("**/api/analyze", (route) => route.fulfill({ status: 202, contentType: "application/json", body: JSON.stringify({ job: "m".repeat(32) }) }));
+  await page.route("**/api/analyze/status*", scripted([prog("score", { calls: 2 })]));
+  await page.getByRole("button", { name: "Analyze your screenplay" }).click();
+  await page.getByLabel("Episode files").setInputFiles(upload([1]));
+  await page.getByRole("button", { name: "Find promos" }).click();
+  const panel = page.locator(".aprog");
+  await expect(panel.getByRole("status")).toContainText("Gemini is judging");
+  await expect(panel.locator(".aprog-film")).toHaveAttribute("aria-hidden", "true");
+  const anim = await panel.locator(".aprog-window").evaluate((el) => getComputedStyle(el).animationName);
+  expect(anim === "none" || (await panel.locator(".aprog-window").evaluate((el) => parseFloat(getComputedStyle(el).animationDuration))) < 0.01).toBe(true);
+});

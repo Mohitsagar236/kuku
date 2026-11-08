@@ -19,7 +19,7 @@ import threading
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +27,7 @@ from promo_finder.application.models import RunOptions
 from promo_finder.application.pipeline import run_pipeline
 from promo_finder.domain.errors import IngestionError
 from promo_finder.infrastructure.artifacts import write_all
-from promo_finder.infrastructure.llm import LLMSettings, ManagedLLM
+from promo_finder.infrastructure.llm import LLMSettings, ManagedLLM, build_llm
 from promo_finder.infrastructure.runs import PRIVATE_PREFIX, RunRepository
 
 log = logging.getLogger(__name__)
@@ -65,6 +65,11 @@ class Job:
     run_id: str = ""
     error: str = ""
     created: float = 0.0
+    started: float = 0.0
+    episodes: int = 0  # filled from the pipeline's "parsed N episodes" message
+    baseline_done: bool = False  # candidates exist and model scoring has begun
+    main_done: bool = False  # ranking finished; results are being written
+    llm: ManagedLLM | None = field(default=None, repr=False)  # read-only, for live counters
 
 
 class AnalysisService:
@@ -244,18 +249,29 @@ class AnalysisService:
 
     def _run(self, job: Job, folder: Path, settings: LLMSettings) -> None:
         def progress(message: str) -> None:
-            job.stage = self._scrub(message.replace("[run] ", ""), settings)
+            text = message.replace("[run] ", "")
+            if m := re.match(r"parsed (\d+) episodes", text):
+                job.episodes = int(m.group(1))
+            elif text.startswith("rules baseline"):
+                job.baseline_done = True
+            elif text.startswith("main run"):
+                job.main_done = True
+            job.stage = self._scrub(text, settings)
 
-        job.state, job.stage = "running", "Reading the screenplay"
-        result = None
+        job.state, job.stage, job.started = "running", "Reading the screenplay", self._clock()
+        result, llm = None, None
         try:
             opts = RunOptions(
                 out_root=self.outputs, ablation=False, stability=False, persist_cache=False,
                 allow_partial=True, write_baseline=job.mode == "model",
             )  # fmt: skip
-            llm = (
-                self._llm_factory(settings) if (self._llm_factory and job.mode == "model") else None
-            )
+            if job.mode == "model":  # built here so live call counters can be read while it runs
+                llm = (
+                    self._llm_factory(settings)
+                    if self._llm_factory
+                    else build_llm(settings, persist=False)
+                )
+                job.llm = llm
             result = run_pipeline(folder, opts, settings, progress=progress, llm=llm)
             result.show.title = job.title
             out = write_all(result)
@@ -272,18 +288,60 @@ class AnalysisService:
                 settings,
             )
         finally:
-            if result is not None:
+            if llm is not None:
                 with contextlib.suppress(Exception):  # best effort
-                    result.llm.client.close()
+                    llm.client.close()
 
     # ------------------------------------------------------------------ status
+    def _progress(self, job: Job) -> dict[str, Any]:
+        """Live, honest progress: real phase and counters, never script text or a key."""
+        records = list(job.llm.records) if job.llm is not None else []
+        by_task: dict[str, int] = {}
+        for r in records:
+            by_task[r.task] = by_task.get(r.task, 0) + 1
+        last = records[-1].task if records else ""
+        if job.state == "queued":
+            phase = "queued"
+        elif job.state in {"done", "error"}:
+            phase = job.state
+        elif job.main_done:
+            phase = "write"
+        elif not job.episodes:
+            phase = "reading"
+        elif job.mode == "rules" or not job.baseline_done:
+            phase = "candidates"
+        elif last == "rerank":
+            phase = "rerank"
+        elif last in {"clarity", "coherence"}:
+            phase = "clarity"
+        else:
+            phase = "score"
+        end = self._clock() if job.state in {"queued", "running"} else job.created
+        started = job.started or job.created
+        return {
+            "phase": phase,
+            "mode": job.mode,
+            "model": f"{job.llm.provider}/{job.llm.model}" if job.llm is not None else "",
+            "episodes": job.episodes,
+            "calls": len(records),
+            "by_task": by_task,
+            "tokens_in": sum(r.tokens_in for r in records),
+            "tokens_out": sum(r.tokens_out for r in records),
+            "elapsed_s": int(max(0.0, end - started)) if job.state in {"queued", "running"} else 0,
+        }
+
     def status(self, token: str) -> dict[str, Any] | None:
         self.purge()
         with self._lock:
             job = self._jobs.get(token)
         if job is None:
             return None
-        out: dict[str, Any] = {"state": job.state, "stage": job.stage, "mode": job.mode}
+        out: dict[str, Any] = {
+            "state": job.state,
+            "stage": job.stage,
+            "mode": job.mode,
+            "progress": self._progress(job),
+        }
         if job.state == "error":
             out["error"] = job.error
         if job.state == "done":

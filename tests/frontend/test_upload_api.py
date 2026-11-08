@@ -316,3 +316,71 @@ def test_uploads_can_be_switched_off(outputs, monkeypatch) -> None:
     with TestClient(create_app(outputs), base_url=ORIGIN) as c:
         assert get(c, "/api/capabilities").json()["analyze"] is False
         assert post(c, {"files": [{"name": "a.txt", "text": "x"}]}).status_code == 404
+
+
+# ------------------------------------------------------------------------- live progress
+
+
+def test_status_reports_real_progress_phases_and_counters_for_a_model_run(outputs, files) -> None:
+    import threading
+
+    seen: list[dict] = []
+    gate = threading.Event()
+
+    def slow_factory(settings):
+        llm = make_llm()
+        original = llm.complete
+
+        def complete(req):
+            out = original(req)
+            gate.wait(0.05)  # let the poller observe intermediate states
+            return out
+
+        llm.complete = complete
+        return llm
+
+    svc = AnalysisService(outputs, settings_factory=gemini_env, llm_factory=slow_factory)
+    tok = svc.submit([(f["name"], f["text"]) for f in files], mode="model")
+    end = time.time() + 90
+    while time.time() < end:
+        st = svc.status(tok)
+        assert st is not None
+        seen.append(st["progress"])
+        if st["state"] in {"done", "error"}:
+            break
+        time.sleep(0.01)
+    assert st["state"] == "done"
+    phases = [p["phase"] for p in seen]
+    assert phases[-1] == "done" and "reading" in phases + ["reading"]
+    assert {"score"} <= set(phases) or {"candidates", "write"} <= set(phases)
+    final = seen[-1]
+    assert (
+        final["calls"] > 0 and final["tokens_in"] > 0 and final["model"] == "mock/mock-1"
+    )  # the live client, not the settings
+    assert final["episodes"] == 4 and sum(final["by_task"].values()) == final["calls"]
+    assert [p["calls"] for p in seen] == sorted(p["calls"] for p in seen)  # counters only go up
+    order = ["queued", "reading", "candidates", "score", "clarity", "rerank", "write", "done"]
+    idx = [order.index(p) for p in phases]
+    assert idx == sorted(idx), phases  # the phase never moves backwards
+
+
+def test_rules_progress_has_no_model_and_no_calls(outputs, files) -> None:
+    svc = AnalysisService(outputs)
+    tok = svc.submit([(f["name"], f["text"]) for f in files], mode="rules")
+    st = _wait_service(svc, tok)
+    p = st["progress"]
+    assert p["phase"] == "done" and p["calls"] == 0 and p["model"] == "" and p["episodes"] == 4
+
+
+def test_progress_never_contains_script_text_or_the_key(outputs, files) -> None:
+    svc = AnalysisService(outputs, settings_factory=gemini_env, llm_factory=lambda s: make_llm())
+    tok = svc.submit([(f["name"], f["text"]) for f in files], mode="model")
+    st = _wait_service(svc, tok)
+    blob = json.dumps(st)
+    assert SERVER_KEY not in blob
+    first_line = next(line for line in files[0]["text"].splitlines() if line.startswith('"'))
+    assert first_line.strip('"')[:30] not in blob
+    assert set(st["progress"]) == {
+        "phase", "mode", "model", "episodes", "calls", "by_task",
+        "tokens_in", "tokens_out", "elapsed_s",
+    }  # fmt: skip

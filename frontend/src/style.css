@@ -357,3 +357,40 @@ th { background:var(--cream); font:500 10px var(--mono); color:var(--mute); text
 
 .workspace-heading .hero-cta { margin-top:16px; padding:12px 26px; min-height:46px; font-size:15px; font-weight:700; color:#15121c; background:var(--orange); border:2px solid #fff; border-radius:999px; cursor:pointer; box-shadow:0 0 0 0 rgba(255,138,61,.5); }
 .workspace-heading .hero-cta:hover:not(:disabled) { background:#fff; color:#15121c; transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,0,0,.35); }
+
+/* Live analysis progress */
+.aprog { display:grid; gap:14px; padding:18px 20px; border:1px solid var(--line); border-radius:18px; background:linear-gradient(135deg,#17131f,#241b33); color:#f4efe6; }
+.aprog .muted { color:#b9b0c9; }
+.aprog-head { display:flex; gap:12px; align-items:center; }
+.aprog-head b { font:600 16px/1.3 var(--serif, serif); }
+.aprog-pulse { flex:none; width:14px; height:14px; border-radius:50%; background:var(--orange); box-shadow:0 0 0 0 rgba(255,138,61,.6); animation:aprog-pulse 1.4s ease-out infinite; }
+.aprog[data-phase="queued"] .aprog-pulse { background:#8f86a1; animation-duration:2.4s; }
+@keyframes aprog-pulse { 0% { box-shadow:0 0 0 0 rgba(255,138,61,.55); } 70% { box-shadow:0 0 0 14px rgba(255,138,61,0); } 100% { box-shadow:0 0 0 0 rgba(255,138,61,0); } }
+.aprog-film { position:relative; padding:18px 6px 26px; overflow:hidden; }
+.aprog-strip { display:flex; gap:5px; }
+.aprog-frame { flex:1; height:34px; border-radius:5px; background:#352b49; border:1px solid #4a3d63; animation:aprog-frame 2.4s ease-in-out infinite; }
+@keyframes aprog-frame { 0%,100% { background:#352b49; } 50% { background:#5a4880; } }
+.aprog-window { position:absolute; top:8px; bottom:6px; left:0; width:34%; display:flex; flex-direction:column; justify-content:space-between; border:2px solid var(--orange); border-radius:8px; background:rgba(255,138,61,.14); animation:aprog-sweep 4.2s cubic-bezier(.5,.05,.4,.95) infinite alternate; pointer-events:none; }
+.aprog-window > span { position:absolute; font:600 10px/1 monospace; letter-spacing:.06em; text-transform:uppercase; padding:3px 6px; border-radius:6px; }
+.aprog-hook { left:4px; top:-9px; background:var(--orange); color:#15121c; }
+.aprog-cliff { right:4px; bottom:-9px; background:#a78bfa; color:#15121c; }
+.aprog-bar { left:0; right:0; top:50%; height:2px; background:linear-gradient(90deg,var(--orange),#a78bfa); opacity:.8; }
+@keyframes aprog-sweep { from { transform:translateX(0); } to { transform:translateX(190%); } }
+.aprog[data-phase="reading"] .aprog-window,.aprog[data-phase="queued"] .aprog-window { opacity:.35; animation-duration:7s; }
+.aprog[data-phase="write"] .aprog-window,.aprog[data-phase="rerank"] .aprog-window { animation-duration:2.2s; }
+.aprog-steps { list-style:none; margin:0; padding:0; display:grid; gap:7px; }
+.aprog-step { display:grid; grid-template-columns:22px 1fr auto; gap:10px; align-items:center; font-size:14px; color:#9a90ad; }
+.aprog-mark { width:20px; height:20px; border-radius:50%; border:2px solid #5a4d73; display:grid; place-items:center; font-size:12px; color:#15121c; }
+.aprog-step.done { color:#d9d2e6; }
+.aprog-step.done .aprog-mark { background:#5fd3a2; border-color:#5fd3a2; }
+.aprog-step.active { color:#fff; font-weight:600; }
+.aprog-step.active .aprog-mark { border-color:var(--orange); border-top-color:transparent; animation:aprog-spin .8s linear infinite; }
+.aprog-step.skipped { opacity:.5; }
+.aprog-who { font:600 10px/1 monospace; text-transform:uppercase; letter-spacing:.06em; padding:3px 7px; border-radius:6px; background:#2e2540; color:#b9b0c9; }
+.aprog-step.active .aprog-who { background:var(--orange); color:#15121c; }
+@keyframes aprog-spin { to { transform:rotate(360deg); } }
+.aprog-stats { display:flex; flex-wrap:wrap; gap:10px 28px; margin:0; padding-top:10px; border-top:1px solid #3a2f50; }
+.aprog-stats dt { font:10px/1 monospace; text-transform:uppercase; letter-spacing:.07em; color:#9a90ad; }
+.aprog-stats dd { margin:3px 0 0; font:600 18px/1.2 var(--serif, serif); font-variant-numeric:tabular-nums; }
+.aprog-note { margin:0; }
+@media(max-width:767px) { .aprog { padding:14px; } .aprog-window { width:50%; } }
