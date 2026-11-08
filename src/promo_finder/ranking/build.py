@@ -4,7 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from promo_finder.domain.models import Beat, Moment, Promo, PromoSegment, Segment, Show, SubScores
+from promo_finder.domain.models import (
+    Beat,
+    BeatType,
+    Moment,
+    Promo,
+    PromoSegment,
+    Segment,
+    Show,
+    SubScores,
+)
 from promo_finder.domain.timecode import format_timecode
 from promo_finder.domain.validation import validate_segments
 from promo_finder.ranking.fusion import Fused
@@ -12,6 +21,7 @@ from promo_finder.ranking.select import segments_redundant
 
 CLIFF_WINDOW_S = 8.0
 HOOK_WINDOW_S = 3.0
+SNAP_START_S = 0.6  # a camera direction this close before a cut start belongs to the cut
 _PHRASE = {
     "hook": "opens with a strong hook ({v:.0f}/10)",
     "cliffhanger": "ends on an unresolved cliffhanger ({v:.0f}/10)",
@@ -28,6 +38,7 @@ class FinalizeStats:
     ends_refined: int = 0
     ends_refine_rejected: int = 0
     dropped_redundant_after_refinement: int = 0
+    starts_snapped: int = 0
 
 
 def _moment(show: Show, beat: Beat) -> Moment:
@@ -74,6 +85,36 @@ def _try_trim(show: Show, f: Fused, beats: dict[str, Beat]) -> list[Segment] | N
     if cliff is None or not (e2 - CLIFF_WINDOW_S <= cliff.end_s <= e2 + 1e-6):
         return None
     return [new]
+
+
+def _snap_starts(show: Show, segs: list[Segment]) -> tuple[list[Segment], int]:
+    """Start each segment on the camera shot that introduces its first beat.
+
+    Scripts put a CAMERA direction just before the line it frames (often 0.1-0.6 s earlier).
+    Cutting inside that shot makes the clip open mid-shot. A snap is applied only if the whole
+    cut still validates (20-60 s etc.); otherwise the original cut is kept.
+    """
+    out: list[Segment] = []
+    for seg in segs:
+        ep = show.episode(seg.episode_number)
+        new = seg
+        if ep is not None:
+            first = next(
+                (i for i, b in enumerate(ep.beats) if abs(b.start_s - seg.start_s) < 1e-6), 0
+            )
+            prev = ep.beats[first - 1] if first > 0 else None
+            if (
+                prev is not None and prev.type is BeatType.CAMERA
+                and 0 < seg.start_s - prev.start_s <= SNAP_START_S
+            ):  # fmt: skip
+                new = Segment(episode_number=seg.episode_number, start_s=prev.start_s,
+                              end_s=seg.end_s, start_beat_id=prev.id,
+                              end_beat_id=seg.end_beat_id)  # fmt: skip
+        out.append(new)
+    snapped = [a for a, b in zip(out, segs, strict=True) if a is not b]
+    if snapped and validate_segments(show, out):
+        return segs, 0
+    return out, len(snapped)
 
 
 def _ends_at_episode_end(show: Show, segs: list[Segment]) -> bool:
@@ -163,6 +204,8 @@ def finalize(
                 stats.ends_refined += 1
             else:
                 stats.ends_refine_rejected += 1
+        segs, snapped = _snap_starts(show, segs)
+        stats.starts_snapped += snapped
         errors = validate_segments(show, segs)
         hook_id = llm.hook_beat_id if llm and llm.main_ok else c.signals.hook_beat_id
         cliff_id = llm.cliff_beat_id if llm and llm.main_ok else c.signals.cliff_beat_id

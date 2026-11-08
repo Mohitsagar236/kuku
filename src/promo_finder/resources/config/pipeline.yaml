@@ -36,7 +36,7 @@ candidate:
 
 scoring:
   score_prompt: score_v1
-  clarity_prompt: clarity_v2   # blind clarity + end-point choice
+  clarity_prompt: clarity_v3   # blind clarity + end-point choice; score must match the gap note
   coherence_prompt: coherence_v1
   rerank_prompt: rerank_v1
   max_batch: 8

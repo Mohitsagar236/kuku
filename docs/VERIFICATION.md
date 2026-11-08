@@ -59,7 +59,7 @@ The real application was checked read-only: no synthetic approvals or notes were
 
 ## Retained run evidence
 
-- Full Gemini result: `outputs/i-married-a-broken-soldier-he-was-a-duke/20261108-153346/`.
+- Full Gemini result (submission run): `outputs/i-married-a-broken-soldier-he-was-a-duke/20261108-184323/`; earlier run `20261108-153346` kept unedited.
 - Cached three-episode smoke: `outputs/i-married-a-broken-soldier-he-was-a-duke/smoke-20261108-153516/`.
 - Fresh Gemini smoke, including three raw responses: `outputs/i-married-a-broken-soldier-he-was-a-duke/smoke-20261108-153712/`.
 - Full-run archive: `outputs/packages/i-married-a-broken-soldier-he-was-a-duke-20261108-153346.zip`.
@@ -71,7 +71,7 @@ No actual demo video was supplied. Functional checks do not establish advertisin
 ## Subsequent assignment completion audit
 
 The earlier figures above describe the prior audit. The latest completion check
-passes 341 Python tests at 95% coverage and 12 persistent browser tests, fixes
+passes 351 Python tests at 95% coverage and 12 persistent browser tests, fixes
 malformed artifact isolation, and refreshes the PDFs/distributions. See
 [ASSIGNMENT_COMPLETION.md](ASSIGNMENT_COMPLETION.md) for requirement coverage,
 retained source-validation evidence and the separate publication/submission status.

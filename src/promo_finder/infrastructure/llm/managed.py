@@ -21,7 +21,11 @@ from promo_finder.infrastructure.files import atomic_write_text
 from promo_finder.infrastructure.llm.base import LLMClient, LLMRequest, LLMResponse
 from promo_finder.infrastructure.llm.budget import Budget, Pricing
 from promo_finder.infrastructure.llm.cache import Cache, MemoryCache
-from promo_finder.infrastructure.llm.errors import DailyQuotaExhausted, LLMTransientError
+from promo_finder.infrastructure.llm.errors import (
+    DailyQuotaExhausted,
+    LLMDisabled,
+    LLMTransientError,
+)
 from promo_finder.infrastructure.llm.ratelimit import RateLimiter
 
 log = logging.getLogger(__name__)
@@ -91,10 +95,13 @@ class ManagedLLM:
         req.temperature = self.temperature
         attempt = 0
         while True:
-            self.limiter.acquire()
+            if self.client.provider != "none":
+                self.limiter.acquire()
             try:
                 resp = self.client.complete(req)
                 break
+            except LLMDisabled:
+                raise  # rules-only mode: no quota was consumed or exhausted
             except DailyQuotaExhausted:
                 self.limiter.mark_exhausted()
                 raise

@@ -11,6 +11,7 @@ from promo_finder.candidates import generate_candidates, load_config, load_lexic
 from promo_finder.domain.models import Candidate, LLMScores, Show
 from promo_finder.evaluation import StabilityReport, compare_scores
 from promo_finder.infrastructure.llm import BudgetExceeded, DailyQuotaExhausted, ManagedLLM
+from promo_finder.infrastructure.llm.errors import LLMDisabled
 from promo_finder.infrastructure.llm.providers.nollm import NoLLM
 from promo_finder.ranking import RankingConfig, rank
 from promo_finder.ranking.fusion import Fused, fuse
@@ -90,7 +91,10 @@ def run_variant(
         msg = f"{type(e).__name__}: {e}"
         if not allow_partial:
             raise RunInterrupted(msg, dict(scorer.stats)) from e
-        log.warning("partial_run", extra={"reason": msg})
+        if isinstance(e, LLMDisabled):
+            log.info("rules_only_run", extra={"reason": str(e)})
+        else:
+            log.warning("partial_run", extra={"reason": msg})
         scorer.offline, partial = True, True
         scores = scorer.score(cands, shortlist=shortlist if use_cascade else None)
 

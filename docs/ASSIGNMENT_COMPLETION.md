@@ -8,7 +8,7 @@ problem; Problems 2 and 3 are alternatives, not additional deliverables.
 | Requirement | Verified local result |
 |---|---|
 | Read the full input pack | Source hash matches the retained run; 50 episodes, 3,727 beats, no parse warnings |
-| Find 20-60 second promos | 30 main promos, 20.3-57.9 seconds, from 27 episodes |
+| Find 20-60 second promos | 30 main promos, 20.3-60.0 seconds, from 27 episodes (run 20261108-184323) |
 | Ordered episode/start/end for every segment | JSON, CSV and editor cut list; deterministic cut and timestamp checks passed |
 | Hook within the first three seconds | Every delivered hook is inside the first three seconds and matches its source beat |
 | Cliffhanger and why it works | Source-backed closing moment, rationale and posting-priority reason present on every promo |
@@ -24,7 +24,7 @@ problem; Problems 2 and 3 are alternatives, not additional deliverables.
 
 ## Current verification evidence
 
-- `make check`: **341 Python tests passed, 95% coverage**, frontend utility tests,
+- `make check`: **351 Python tests passed, 95% coverage**, frontend utility tests,
   frontend production build, Ruff, mypy and both architecture contracts passed.
 - `PF_TEST_PORT=18877 make browser-test`: **12 persistent browser tests passed**,
   covering filters, keyboard navigation, reviews, note races, cut suggestions/reset,
@@ -37,7 +37,7 @@ problem; Problems 2 and 3 are alternatives, not additional deliverables.
 - Gemini doctor: provider and model found, generic JSON-mode call passed, full-pack
   parsing/candidate diagnostics passed. The generic call sent no screenplay text.
   This audit reused existing full-pack judgments and did not claim a new live full run.
-- Both solution PDFs rendered as two pages. Top-three IDs match run 20261108-153346.
+- Both solution PDFs rendered as two pages. Top-three IDs match run 20261108-184323.
 - Fresh wheel installed with locked dependencies outside the checkout; packaged
   configuration/prompts/assets, rules pipeline, health/readiness, browsing, review
   persistence and CSV download checked independently.
@@ -61,8 +61,7 @@ problem; Problems 2 and 3 are alternatives, not additional deliverables.
 ## Remaining quality limits
 
 The application meets the engineering scope; it does **not** establish that every
-suggested promo is a good advertisement. The main run's model flags **23 of 30**
-promos as needing context, and its report documents spoiler and dead-air risks.
+suggested promo is a good advertisement. The main run's model flags **1 of 30** promos as needing context (it was **23 of 30** before the clarity fix described below) and 11 of 30 end at an episode's end; the report documents spoiler and dead-air risks.
 These are visible failures, not human-labelled accuracy measurements. An editor
 must approve the final choices. No human labels or endorsements were fabricated.
 Stitched candidates are exercised by synthetic tests, but none reached the real
@@ -105,3 +104,37 @@ review handoff; do not add them to that public repository.
 Record in your own voice. Hide .env values and keep any source-content recording
 in the private review channel. The video is optional, so its absence does not make
 the required local deliverables incomplete.
+
+## Re-test 8 November 2026 (evening)
+
+Independent re-test against the brief: all deliverable checks passed again, including
+`make check` (351 tests, frontend lint/tests/build, Ruff, mypy, both architecture contracts)
+and 12 browser tests. Fixed: rules-only runs (`LLM_PROVIDER=none`) no longer log a
+misleading "DailyQuotaExhausted" warning or touch the rate-limit counter (new
+`LLMDisabled` error plus a regression test). Also fixed: the 23-of-30 "needs context" weakness. Cause: the blind judge scored
+clips 7-8 while naming a missing backstory. Change: `clarity_v3` (a named gap caps
+clarity at 6), a blind-clarity gate of 5, clarity weight 0.20 to 0.25. A live re-run
+(24 Gemini calls, scoring served from cache) produced run 20261108-184323, which is now
+the submission run; the previous run 20261108-153346 stays on disk unedited. Result:
+1 of 30 flagged, dead air 3 to 1, weak endings 14 to 10, hook/cliffhanger means unchanged,
+audit script clean. Trade-off: promos ending at an episode's end rose from 1/30 to 11/30;
+not human-checked. Still unchanged: no stitched promos reached the real top 30, 27 of 30
+start mid-scene, and no human accuracy labels exist.
+
+### Final-pass fixes (same evening)
+
+- Cut-start bug: 13 of 30 promos began 0.1-0.6 s after a camera direction that frames their
+  first line (including rank 1). Starts now snap back onto that shot when the cut still
+  validates (new `_snap_starts`, 3 tests). Same 30 promos, same order, durations 20.3-60.0 s;
+  new run `20261108-184323` (0 live calls, all judgments cached) replaces `-182755` as the
+  submission run. `-153346` and `-182755` stay on disk unedited.
+- Cache bug: response-cache keys ignored the provider, so a mock run and a Gemini run with
+  the same model name shared entries. Non-Gemini providers are now namespaced; Gemini keys
+  are unchanged so the retained run still resumes with 0 live calls (verified).
+- Added `scripts/review_sheet.py` (blank 1-5 review sheet and a comparison against the model
+  ranking). No ratings exist yet: **human validation is pending**.
+- Examined by hand against the screenplay: rank 1 (hook weak as text but the weapon-raising
+  shot sat 0.1 s before the cut, now included; the episode-end cut is the episode's own
+  unresolved cliffhanger), rank 9 (ending is unresolved; spoiler concern fair: 56 s covers
+  the whole rescue), rank 23 (weak end on a reaction shot; stronger beat only 4 s later, not
+  changed: one case), rank 24 (justified: quiet exposition hook and dead air; ranked 24 of 30).

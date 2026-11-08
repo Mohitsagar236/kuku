@@ -33,6 +33,10 @@ class DailyQuotaExhausted(LLMError):
     """Daily request quota used up (client-side RPD or provider 429 'per day'). Run is resumable."""
 
 
+class LLMDisabled(DailyQuotaExhausted):
+    """Rules-only mode (LLM_PROVIDER=none): not a quota problem; falls back to rules."""
+
+
 class LLMAuthError(LLMError):
     """Missing/invalid API key."""
 

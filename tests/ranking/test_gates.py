@@ -79,7 +79,9 @@ def test_attribution_matches_the_configured_shares(show, rcfg) -> None:
     f = fuse(c, llm_scores(c, hook=6, cliffhanger=6, intensity=6, clarity=6, spoiler_risk=0), rcfg)
     rule, llm = attribution(f, rcfg)
     assert rule + llm == pytest.approx(f.final)  # nothing is lost or double counted
-    assert rule / (rule + llm) == pytest.approx(0.27)  # 0.3*(0.3+0.3+0.2)... = 27% rule, 73% LLM
+    assert rule / (rule + llm) == pytest.approx(
+        0.2625
+    )  # 0.3*(.275+.275+.2) + 0.15*.25 = 26.25% rule
     spoiler = fuse(
         c, llm_scores(c, hook=6, cliffhanger=6, intensity=6, clarity=6, spoiler_risk=10), rcfg
     )
@@ -122,3 +124,14 @@ def test_delivered_promos_never_overlap_or_share_an_ending(show, rcfg) -> None:
     for i, p in enumerate(ps):
         for q in ps[i + 1 :]:
             assert p.segments[-1].end_s != q.segments[-1].end_s
+
+
+def test_low_blind_clarity_fails_the_clarity_gate():
+    from promo_finder.ranking.config import RankingConfig
+    from promo_finder.ranking.fusion import failed_gates
+
+    cfg = RankingConfig()
+    ok = LLMScores(main_ok=True, hook=8, cliffhanger=8, clarity_ok=True, clarity=7)
+    low = LLMScores(main_ok=True, hook=8, cliffhanger=8, clarity_ok=True, clarity=4)
+    assert failed_gates(ok, cfg) == []
+    assert failed_gates(low, cfg) == ["clarity"]

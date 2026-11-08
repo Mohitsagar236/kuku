@@ -2,13 +2,14 @@
 fusion:
   llm_share: 0.7            # hook/cliffhanger/intensity: share of the LLM score vs the rule score
   clarity_llm_share: 0.85   # clarity: the blind LLM judge dominates (rule clarity is a weak proxy)
-  weights: {hook: 0.30, cliffhanger: 0.30, clarity: 0.20, intensity: 0.20}
+  weights: {hook: 0.275, cliffhanger: 0.275, clarity: 0.25, intensity: 0.20}
   spoiler_penalty_per_point: 0.05   # subtracted per point of spoiler_risk (0-10)
   stitched_base: 0.70       # stitched final score is multiplied by stitched_base + 0.03*coherence
   stitched_unknown: 0.80    # ...or this when the coherence check failed
 gates:                      # hard gates on the LLM's scores (0-10): below = never delivered
   min_hook: 5               # hook_strength
   min_cliffhanger: 5        # cliffhanger_strength of the end that will be delivered
+  min_clarity: 5            # blind standalone clarity of the clip as delivered
 selection:
   dedupe_iou: 0.30          # drop a lower-ranked promo overlapping a kept one by more than this IoU
   same_ending_tol_s: 1.5    # ...or cutting within this many seconds of a kept promo's ending (same cliffhanger)

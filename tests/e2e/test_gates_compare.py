@@ -38,8 +38,8 @@ def test_report_shows_gates_refinement_and_the_score_formula(
     )
     assert "End refinement:" in rep
     assert "## 2c. Final-score formula and rule vs LLM share" in rep
-    assert "0.3*hook + 0.3*cliffhanger + 0.2*clarity + 0.2*intensity" in rep
-    assert "the LLM contributes 73%" in rep  # 0.3+0.3+0.2 at 70% and 0.2 at 85%... by construction
+    assert "0.275*hook + 0.275*cliffhanger + 0.25*clarity + 0.2*intensity" in rep
+    assert "the LLM contributes 74%" in rep  # 0.3+0.3+0.2 at 70% and 0.2 at 85%... by construction
     meta = json.loads((out / "run_metadata.json").read_text())
     assert set(meta["gates"]) == {"dropped", "gated", "hook_first_pass"}
     assert set(meta["end_refinement"]) == {"refined", "rejected"}

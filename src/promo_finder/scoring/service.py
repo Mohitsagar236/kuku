@@ -73,8 +73,12 @@ class Scorer:
         return {p.name: p.sha for p in (self.p_score, self.p_clarity, self.p_coh)}
 
     def _key(self, task: str, prompt_sha: str, *blobs: str) -> str:
+        # Gemini keys predate provider namespacing and stay unchanged so retained runs resume.
+        # Every other provider (mock, openai, ollama...) is namespaced: a mock run must never be
+        # served as, or serve, real model judgments that happen to share a model name.
+        extra = () if self.llm.provider == "gemini" else (self.llm.provider,)
         return make_key(
-            task, prompt_sha, self.llm.model, str(self.llm.temperature), self.ns, *blobs
+            task, prompt_sha, self.llm.model, str(self.llm.temperature), self.ns, *extra, *blobs
         )
 
     def _cached(self, task: str, key: str) -> dict[str, Any] | None:

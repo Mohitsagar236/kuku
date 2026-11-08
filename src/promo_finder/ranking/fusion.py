@@ -81,6 +81,8 @@ def failed_gates(llm: LLMScores | None, cfg: RankingConfig) -> list[str]:
     cliff = llm.ranking_cliffhanger
     if cliff is not None and cliff < cfg.gates.min_cliffhanger:
         out.append("cliffhanger")
+    if llm.clarity_ok and llm.clarity is not None and llm.clarity < cfg.gates.min_clarity:
+        out.append("clarity")
     return out
 
 

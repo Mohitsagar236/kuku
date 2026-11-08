@@ -95,7 +95,7 @@ def test_full_run_writes_every_deliverable(show_dir: Path, tmp_path: Path) -> No
 
     meta = json.loads((out / "run_metadata.json").read_text())
     assert meta["llm"]["provider"] == "mock" and meta["llm"]["temperature"] == 0.0
-    assert set(meta["prompts"]) == {"score_v1", "clarity_v2", "coherence_v1"}
+    assert set(meta["prompts"]) == {"score_v1", "clarity_v3", "coherence_v1"}
     assert meta["usage"]["calls"] > 0 and meta["measured_output_tokens_per_scored_candidate"] > 0
     assert meta["variants"]["ablation:literal_cliffhanger"] is not None and meta["partial"] is False
     assert meta["variants"]["ablation:episode_end_prior"] is not None

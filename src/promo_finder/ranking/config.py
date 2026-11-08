@@ -9,9 +9,9 @@ from promo_finder.infrastructure.config import find_config_dir
 
 
 class Weights(BaseModel):
-    hook: float = 0.30
-    cliffhanger: float = 0.30
-    clarity: float = 0.20
+    hook: float = 0.275
+    cliffhanger: float = 0.275
+    clarity: float = 0.25
     intensity: float = 0.20
 
 
@@ -54,6 +54,7 @@ class Gates(BaseModel):
 
     min_hook: float = 5.0
     min_cliffhanger: float = 5.0
+    min_clarity: float = 5.0
 
 
 class RankingConfig(BaseModel):

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from promo_finder.infrastructure.llm.base import LLMClient, LLMRequest, LLMResponse
-from promo_finder.infrastructure.llm.errors import DailyQuotaExhausted
+from promo_finder.infrastructure.llm.errors import LLMDisabled
 
 
 class NoLLM(LLMClient):
@@ -11,4 +11,4 @@ class NoLLM(LLMClient):
     model = "rules-only"
 
     def complete(self, req: LLMRequest) -> LLMResponse:
-        raise DailyQuotaExhausted("LLM disabled (LLM_PROVIDER=none): rules-only run")
+        raise LLMDisabled("LLM disabled (LLM_PROVIDER=none): rules-only run")

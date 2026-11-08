@@ -127,7 +127,9 @@ def test_keeps_the_present_end_when_it_is_already_the_best(story, scfg) -> None:
     cand = candidate(story, CUTOFF_END)  # already ends on the cut-off line
     s = Scorer(make_llm(), story, scfg).score([cand])[cand.id]
     assert not s.end_changed
-    s = s.model_copy(update={"hook": 8.0, "cliffhanger": 8.0})  # pin the mock's noise
+    s = s.model_copy(
+        update={"hook": 8.0, "cliffhanger": 8.0, "clarity": 8.0}
+    )  # pin the mock's noise
     p = rank(story, [cand], {cand.id: s}, load_ranking_config()).promos[0]
     assert not p.end_refined and p.total_duration_s == CUTOFF_END
 

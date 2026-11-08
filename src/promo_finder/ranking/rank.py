@@ -56,7 +56,7 @@ def rank(
         failed = failed_gates(f.llm, cfg)
         if failed:
             f.flags.append("gated:" + "+".join(failed))
-            gated["both" if len(failed) == 2 else failed[0]] += 1
+            gated["both" if len(failed) > 1 else failed[0]] += 1  # "both" = several gates
         else:
             eligible.append(f)
     selected, dropped = select(eligible, show, cfg.selection)

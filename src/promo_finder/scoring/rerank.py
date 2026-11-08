@@ -31,7 +31,8 @@ def _one_pass(
     labels = {cid: f"r{i + 1}" for i, cid in enumerate(order)}
     inv = {v: k for k, v in labels.items()}
     body = "\n\n".join(f"{labels[c]}: {digests[c]}" for c in order)
-    key = make_key("rerank", prompt.sha, llm.model, str(llm.temperature), ns, body)
+    extra = () if llm.provider == "gemini" else (llm.provider,)  # see Scorer._key
+    key = make_key("rerank", prompt.sha, llm.model, str(llm.temperature), ns, *extra, body)
     if not bypass:
         hit = llm.cache.get(key)
         if hit:

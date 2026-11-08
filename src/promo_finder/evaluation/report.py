@@ -135,16 +135,19 @@ def _gates_and_refinement(r: ReportInput) -> list[str]:
         gt = res.gated
         L += [
             f"- Gates on the LLM's own scores (never delivered below): hook < {g.min_hook:g}, "
-            f"cliffhanger < {g.min_cliffhanger:g} (cliffhanger = the end that is delivered). "
+            f"cliffhanger < {g.min_cliffhanger:g} (cliffhanger = the end that is delivered), "
+            f"blind clarity < {g.min_clarity:g}. "
             "Rule-only fallback candidates are not gated.",
             f"- Removed before blind scoring (hook gate, first pass): {first} of {len(r.cands)} candidates",
             f"- Removed after blind scoring + end refinement, of {n} fully scored: "
             f"hook only {gt.get('hook', 0)}, cliffhanger only {gt.get('cliffhanger', 0)}, "
-            f"both {gt.get('both', 0)} (total {sum(gt.values())})",
+            f"clarity only {gt.get('clarity', 0)}, several {gt.get('both', 0)} (total {sum(gt.values())})",
         ]
     fs = res.final_stats
     refined = [p for p in res.promos if p.end_refined]
     L += [
+        f"- Start snap: {fs.starts_snapped} segment start(s) moved back (<= 0.6 s) onto the camera "
+        "shot that introduces the first line, so clips do not open mid-shot",
         f"- End refinement: {fs.ends_refined} delivered promo(s) had their end moved to a stronger "
         f"unresolved cut; {fs.ends_refine_rejected} proposals were rejected by validation",
     ]

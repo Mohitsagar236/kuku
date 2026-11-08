@@ -67,10 +67,10 @@
 
 <h2>5. Identification and ranking method</h2>
 <div class="formula">dim   = 0.7·LLM + 0.3·rule            (clarity: 0.85·LLM + 0.15·rule)
-score = 0.3·hook + 0.3·cliffhanger + 0.2·clarity + 0.2·intensity − 0.05·spoiler_risk
+score = 0.275·hook + 0.275·cliffhanger + 0.25·clarity + 0.2·intensity − 0.05·spoiler_risk
 final = 0.5·score + 0.5·listwise rerank score        (top 30 only; stitched promos discounted by coherence)</div>
 <ul>
-  <li><b>Hard gates:</b> a promo is never delivered if the LLM scores its hook or its delivered ending below 5/10. The gates removed 117 of 428 candidates after the first pass and 2 more after blind scoring.</li>
+  <li><b>Hard gates:</b> a promo is never delivered if the LLM scores its hook, its delivered ending or its blind clarity below 5/10. The gates removed 117 of 428 candidates after the first pass and 1 more after blind scoring.</li>
   <li><b>Confidence</b> rises when rules and LLM agree; flags (<i>needs context</i>, <i>weak ending</i>, <i>dead air</i>, <i>spoiler</i>) tell the editor what to check.</li>
 </ul>
 
@@ -82,11 +82,11 @@ final = 0.5·score + 0.5·listwise rerank score        (top 30 only; stitched pr
   <tr><td>Rank them: which to post first and why</td><td><code>rank</code>, <code>post_first_because</code>, <code>ranking.md</code>; top 3 below</td></tr>
   <tr><td>Check quality: where does it pick badly?</td><td><code>quality_report.md</code> §9 and section 8 below</td></tr>
 </table>
-<p class="note">Top 3 to post first (run <code>20261108-153346</code>; scores 0–10):</p>
-<!--top3 run=i-married-a-broken-soldier-he-was-a-duke/20261108-153346
+<p class="note">Top 3 to post first (run <code>20261108-184323</code>; scores 0–10):</p>
+<!--top3 run=i-married-a-broken-soldier-he-was-a-duke/20261108-184323
 1919c497a1f5|Public confrontation that ends on a weapon threat
+5e34772f5e94|Violent punishment, cut on a defiant vow of revenge
 bcc102e451df|Defiance in a chapel, cut on an explosion and an armed arrival
-fbed312c9d40|Fire rescue, cut on a falling beam
 -->
 
 <h2>7. How I know it is good: testing and validation</h2>
@@ -95,18 +95,18 @@ fbed312c9d40|Fire rescue, cut on a falling beam
 <p><b>Full run on the 50-episode pack</b> (Gemini, rules + LLM):</p>
 <ul>
   <li>3,727 beats parsed → 39,354 windows → 428 candidates scored → 60 fully scored → 30 delivered.</li>
-  <li>0 of 30 failed final validation; lengths 20.3–57.9 s; the top 10 come from 10 different episodes.</li>
-  <li>End refinement moved the end of 23 of the 30 promos to a stronger unresolved cut.</li>
+  <li>0 of 30 failed final validation; lengths 20.3–60.0 s; the top 10 come from 10 different episodes.</li>
+  <li>End refinement moved the end of 18 of the 30 promos to a stronger unresolved cut.</li>
   <li>Rules vs LLM: Spearman correlation 0.46. On cliffhangers they differ by 4+ points 35% of the time, which is why the LLM carries most of the weight.</li>
 </ul>
 </div>
 <div>
 <p><b>Robustness checks</b>:</p>
 <ul>
-  <li><b>Rules-only baseline:</b> only 4 of its top 10 overlap the LLM's top 10. 7 of the rules' top 10 just end at an episode's end, against 1 of 10 for the LLM run.</li>
-  <li><b>Ablations:</b> removing the writer's literal "cliffhanger" annotations keeps 7/10 of the top 10 (moderate dependence). Removing the episode-end prior keeps 5/10.</li>
-  <li><b>Smoke runs</b> (3 episodes, live API): 10–12 calls, 74–105 output tokens per candidate, 0 invalid or truncated replies after the fixes.</li>
-  <li><b>Engineering:</b> Python regressions, real-browser editor tests, package installation, lint and typing, plus a confidentiality scan (PDFs included) that fails on any 8-word script passage or quoted 4-word line of dialogue in a committable file.</li>
+  <li><b>Rules-only baseline:</b> only 3 of its top 10 overlap the LLM's top 10. 7 of the rules' top 10 just end at an episode's end, against 3 of 10 for the LLM run.</li>
+  <li><b>Ablations:</b> removing the writer's literal "cliffhanger" annotations keeps 7/10 of the top 10 (moderate dependence). Removing the episode-end prior also keeps 7/10.</li>
+  <li><b>Smoke runs</b> (3 episodes, live API): 10–12 calls, 0 invalid or truncated replies after the fixes.</li>
+  <li><b>Engineering:</b> Python and real-browser regression tests, lint, typing, and a confidentiality scan (PDFs included) that fails on script passages in committable files.</li>
 </ul>
 </div>
 </div>
@@ -114,11 +114,11 @@ fbed312c9d40|Fire rescue, cut on a falling beam
 
 <h2>8. Where it picks badly, limitations and next steps</h2>
 <ul>
-  <li><b>Needs backstory:</b> the tool's own flags mark 23 of 30 promos as needing context for a stranger. This is the biggest weakness.</li>
-  <li><b>Spoilers:</b> 4 of 30 reveal an outcome a promo should only tease. <b>Dead air:</b> 3 of 30 contain a long silent stretch.</li>
+  <li><b>Needs backstory</b> was the biggest weakness (23 of 30 flagged in the first full run: the judge gave 7–8/10 while naming a gap). Fix: a named gap caps clarity at 6, a clarity gate of 5, clarity weight 0.25. Now 1 of 30 is flagged, but 33 of 112 judged clips still had a gap and simply lost out. <b>Cost:</b> 11 of 30 now end at an episode's end (was 1 of 30); no human has checked this trade. Also fixed: 13 starts cut 0.1–0.6 s into a camera shot.</li>
+  <li><b>Spoilers:</b> 4 of 30 reveal an outcome a promo should only tease. <b>Dead air:</b> 1 of 30 contain a long silent stretch.</li>
   <li><b>Script-only:</b> slaps and stings are inferred from text, and the judge favours loud melodrama over quiet but effective hooks.</li>
   <li><b>Single judge:</b> one model scores everything. The flags above are the model's own judgement, not human-verified. None of the 40 stitched candidates made the final 30, so multi-moment promos are untested in practice.</li>
-  <li><b>A reporting bug found late:</b> the first full run's report counted episode-ending promos before end refinement (14 of 30; the true figure is 1 of 30) and printed a meaningless tokens-per-candidate line. Fixed with tests; the raw outputs were then regenerated from the response cache with the fixed code (4 new LLM calls, identical ranking). The earlier run is kept unedited.</li>
+  <li><b>A reporting bug found late:</b> the first full run's report counted episode-ending promos before end refinement (14 of 30; true figure 1 of 30). Fixed with tests; that run is kept unedited.</li>
 </ul>
 <p><b>Scale and cost.</b> Candidate generation is pure code: about 13 s for 50 episodes on an 8 GB laptop with no LLM. By construction one show needs about 70 LLM calls for the main ranking (428 candidates in batches of 8, stitched in batches of 5, clarity in batches of 6, 2 rerank passes), at about 2,200 input tokens per scoring call. That is within the 200 requests/day configured for the free key; the cache makes an interrupted run resume without re-billing. At catalogue scale it is a per-show batch job; paid cost is calls × token price, capped by per-run budgets. <b>Next:</b> editor-labelled golden set; a one-line show premise in the blind clarity check to cut false "needs context" flags; a stronger judge via <code>.env</code>; fit the weights to how posted promos actually perform.</p>
 
