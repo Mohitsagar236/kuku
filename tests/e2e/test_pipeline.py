@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -91,7 +92,7 @@ def test_full_run_writes_every_deliverable(show_dir: Path, tmp_path: Path) -> No
         "Where the tool picks badly",
     ):
         assert section in rep
-    assert "Top-10 overlap" in rep and "Top-10 picks that change" in rep
+    assert re.search(r"Top-\d+ overlap", rep) and "picks that change" in rep
 
     meta = json.loads((out / "run_metadata.json").read_text())
     assert meta["llm"]["provider"] == "mock" and meta["llm"]["temperature"] == 0.0
@@ -157,7 +158,7 @@ def test_golden_set_is_scored_in_the_report(show_dir: Path, tmp_path: Path) -> N
     assert res.golden and res.golden.precision_at_k > 0
     assert res.golden.matches[0].best_iou == 1.0 and res.golden.matches[0].best_rank == 1
     out = write_all(res)
-    assert "precision@10" in (out / "quality_report.md").read_text()
+    assert re.search(r"precision@\d+", (out / "quality_report.md").read_text())
 
 
 def test_ablation_and_stability_can_be_switched_off(show_dir: Path, tmp_path: Path) -> None:
@@ -252,7 +253,7 @@ def test_editor_feedback_flows_into_the_report_and_the_refresh_command(
     assert main(["feedback", str(d)]) == 0
     rep = (d / "quality_report.md").read_text()
     assert rep.count("## 8b. Editor feedback") == 1 and "No editor feedback yet" not in rep
-    assert "precision@10 = " in rep and "gives away the twist" in rep
+    assert re.search(r"precision@\d+ = ", rep) and "gives away the twist" in rep
     assert rep.index("## 8b.") < rep.index("## 9.")
     assert "great opening" not in rep  # only rejections are listed with reasons
 

@@ -111,7 +111,7 @@ def write_ranking_md(
     path: Path, promos: list[Promo], title: str, scored_by: str, note: str = ""
 ) -> None:
     L = [
-        f"# Top 10 promos: {title}",
+        f"# Top {min(10, len(promos))} promos: {title}",
         "",
         f"Scored by {scored_by}. {note}".strip(),
         "Timestamps are per episode (mm:ss.xx).",

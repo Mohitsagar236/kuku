@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import zipfile
 from pathlib import Path
 
@@ -202,9 +203,8 @@ def test_baseline_written_to_outputs_and_compared_in_report(show_dir: Path, tmp_
     assert doc["variant"] == "rules_baseline" and doc["promos"]
     assert all("rule_fallback_main" in p["flags"] for p in doc["promos"])
     rep = (out / "quality_report.md").read_text()
-    assert (
-        "Rules baseline vs rules + LLM" in rep
-        and "Top-10 overlap, LLM run vs rules-only baseline" in rep
+    assert "Rules baseline vs rules + LLM" in rep and re.search(
+        r"Top-\d+ overlap, LLM run vs rules-only baseline", rep
     )
     assert "Promoted by the LLM" in rep and "Demoted by the LLM" in rep
     section = rep.split("## 5b.")[1].split("## 6.")[0]

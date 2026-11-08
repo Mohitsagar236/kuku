@@ -424,7 +424,7 @@ def evaluate_feedback(
         rejected.append(RejectedRow(hit.rank if hit else None, e.original, e.note))
     rejected.sort(key=lambda r: (r.rank is None, r.rank or 0))
     return FeedbackSummary(
-        k=k,
+        k=len(top) or k,  # effective k: a 3-promo run is Precision@3, not @10
         n_entries=len([e for e in entries if e.verdict]),
         n_approved=sum(e.verdict == "approve" for e in entries),
         n_would_post=sum(e.verdict == "would_post" for e in entries),

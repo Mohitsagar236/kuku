@@ -14,6 +14,34 @@ from promo_finder.evaluation.matching import promo_iou, topk_overlap
 from promo_finder.evaluation.stability import StabilityReport
 from promo_finder.ranking import RankResult
 
+TOP_K = 10
+
+
+def eff_k(*lists: Any) -> int:
+    """Effective top-k: 10, or fewer when a run delivered fewer promos."""
+    return min([TOP_K, *(len(x) for x in lists)])
+
+
+def dependence_verdict(overlap: int, k: int) -> str:
+    """Verdict from the overlap *fraction*, so 3/3 identical is ROBUST, not STRONG."""
+    if k <= 0:
+        return "n/a: no promos to compare"
+    f = overlap / k
+    if f >= 0.8:
+        return "ROBUST: the ranking barely depends on the annotation"
+    if f >= 0.5:
+        return "MODERATE dependence on how this writer annotates scripts"
+    return (
+        "STRONG dependence: ranking changes a lot without the annotation, so a "
+        "show written differently could break the tool"
+    )
+
+
+def signal_occurrences(show: Show, terms: list[str]) -> int:
+    """How many beats mention any of the ablated literal cues (case-insensitive)."""
+    low = [t.lower() for t in terms if t]
+    return sum(1 for ep in show.episodes for b in ep.beats if any(t in b.text.lower() for t in low))
+
 
 @dataclass
 class AblationInfo:
@@ -197,14 +225,15 @@ def _baseline_section(r: ReportInput) -> list[str]:
     L = ["## 5b. Rules baseline vs rules + LLM", ""]
     if r.baseline is None:
         return L + ["- No rules baseline available for this run.", ""]
-    base = r.baseline.promos[:10]
-    llm10 = r.result.promos[:10]
+    k = eff_k(r.baseline.promos, r.result.promos)
+    base = r.baseline.promos[:k]
+    llm10 = r.result.promos[:k]
     ov = topk_overlap([p.segments for p in llm10], [p.segments for p in base])
-    L += [f"- Top-10 overlap, LLM run vs rules-only baseline: **{ov}/10** (IoU >= 0.5 = same promo)",
-          f"- Top-10 ending at an episode's end: LLM run {sum(p.ends_at_episode_end for p in llm10)}/10, "
-          f"rules baseline {sum(p.ends_at_episode_end for p in base)}/10", ""]  # fmt: skip
+    L += [f"- Top-{k} overlap, LLM run vs rules-only baseline: **{ov}/{k}** (IoU >= 0.5 = same promo)",
+          f"- Top-{k} ending at an episode's end: LLM run {sum(p.ends_at_episode_end for p in llm10)}/{k}, "
+          f"rules baseline {sum(p.ends_at_episode_end for p in base)}/{k}", ""]  # fmt: skip
     promoted = [p for p in llm10 if not any(promo_iou(p.segments, b.segments) >= 0.5 for b in base)]
-    L.append("**Promoted by the LLM** (in its top 10, not in the rules top 10):")
+    L.append(f"**Promoted by the LLM** (in its top {k}, not in the rules top {k}):")
     for p in promoted or []:
         c, _ = _best_candidate(r, p.segments)
         rb = next(
@@ -213,9 +242,9 @@ def _baseline_section(r: ReportInput) -> list[str]:
         L.append(f"- LLM #{p.rank} {_ref(p)[len(f'#{p.rank} '):]}; rules rank {rb or '>' + str(len(r.baseline.promos))}: "
                  f"{_why_moved(c, r.scores.get(c.id), True) if c else 'n/a'}")  # fmt: skip
     if not promoted:
-        L.append("- none: the same ten promos, possibly reordered")
+        L.append(f"- none: the same {k} promos, possibly reordered")
     dropped = [b for b in base if not any(promo_iou(b.segments, p.segments) >= 0.5 for p in llm10)]
-    L += ["", "**Demoted by the LLM** (in the rules top 10, not in its top 10):"]
+    L += ["", f"**Demoted by the LLM** (in the rules top {k}, not in its top {k}):"]
     by_id = {p.id: p for p in r.result.promos}
     for b in dropped:
         c, _ = _best_candidate(r, b.segments)
@@ -254,7 +283,7 @@ def build_report(r: ReportInput) -> str:
         f"- Cascade: hook/cliffhanger/intensity scored on all {len(r.cands)}; blind clarity + stitched "
         f"coherence on the top {r.cascade.get('stage2', len(r.cands))} after first-pass scoring "
         f"(the rest cannot be delivered)",
-        f"- Promos delivered: {len(promos)} (top-10 shown in ranking.md)",
+        f"- Promos delivered: {len(promos)} (top {eff_k(promos)} shown in ranking.md)",
         f"- LLM: {r.llm_summary.get('provider')} / {r.llm_summary.get('model')}, "
         f"{r.llm_summary.get('calls')} calls, {r.llm_summary.get('tokens_in', 0):,} in / "
         f"{r.llm_summary.get('tokens_out', 0):,} out tokens",
@@ -331,9 +360,11 @@ def build_report(r: ReportInput) -> str:
     L += ["## 5. Calibration (cross-show listwise rerank)", ""]
     if r.result.rerank_used:
         post = [p.id for p in top10]
-        pre = r.result.pre_rerank_top[:10]
-        L.append(f"- Rerank applied to the top {len(r.result.selected[:30])}. Top-10 before vs after rerank: "
-                 f"{len(set(pre) & set(post))}/10 unchanged ({10 - len(set(pre) & set(post))} replaced).")  # fmt: skip
+        kk = eff_k(post, r.result.pre_rerank_top)
+        pre, post = r.result.pre_rerank_top[:kk], post[:kk]
+        same = len(set(pre) & set(post))
+        L.append(f"- Rerank applied to the top {len(r.result.selected[:30])}. Top-{kk} before vs after rerank: "
+                 f"{same}/{kk} unchanged ({kk - same} replaced).")  # fmt: skip
     else:
         L.append(
             "- Rerank NOT applied (LLM unavailable or every pass failed): scores are per-episode absolute only."
@@ -346,27 +377,37 @@ def build_report(r: ReportInput) -> str:
     # 6. ablations
     L += ["## 6. Ablations: how much does the tool lean on fragile signals?", ""]
     n_main_end = sum(p.ends_at_episode_end for p in top10)
-    L += [f"Main run: {n_main_end}/{len(top10)} of the top 10 end at an episode's end "
+    L += [f"Main run: {n_main_end}/{len(top10)} of the top {len(top10)} end at an episode's end "
           f"({sum(p.ends_at_episode_end for p in promos)}/{len(promos)} of all delivered). "
           "No cap is applied to this share; it is only reported.", ""]  # fmt: skip
     if r.ablations:
         for ab in r.ablations:
             a_promos = ab.result.promos
-            ov = topk_overlap([p.segments for p in top10], [p.segments for p in a_promos[:10]])
+            k = eff_k(promos, a_promos)
+            if k == 0:
+                L += [f"### {ab.name}: {ab.label}",
+                      f"- No promos to compare ({len(promos)} main vs {len(a_promos)} without): "
+                      "nothing to measure.", ""]  # fmt: skip
+                continue
+            k30 = min(30, len(promos), len(a_promos))
+            ov = topk_overlap([p.segments for p in promos[:k]], [p.segments for p in a_promos[:k]])
             ov30 = topk_overlap(
                 [p.segments for p in promos[:30]], [p.segments for p in a_promos[:30]]
             )
-            a_end10 = sum(p.ends_at_episode_end for p in a_promos[:10])
+            m_end = sum(p.ends_at_episode_end for p in promos[:k])
+            a_end10 = sum(p.ends_at_episode_end for p in a_promos[:k])
             a_endall = sum(p.ends_at_episode_end for p in a_promos)
             L += [f"### {ab.name}: {ab.label}",
-                  f"- Top-10 overlap with/without: **{ov}/10** (IoU >= 0.5 = same promo); top-30: {ov30}/30",
-                  f"- Top-10 ending at an episode end: **{n_main_end}/10 with vs {a_end10}/10 without**; "
+                  f"- Top-{k} overlap with/without: **{ov}/{k}** (IoU >= 0.5 = same promo); top-{k30}: {ov30}/{k30}",
+                  f"- Top-{k} ending at an episode end: **{m_end}/{k} with vs {a_end10}/{k} without**; "
                   f"all delivered: {sum(p.ends_at_episode_end for p in promos)}/{len(promos)} vs {a_endall}/{len(a_promos)}"]  # fmt: skip
             if ab.name == "literal_cliffhanger":
-                verdict = ("ROBUST: the ranking barely depends on the annotation" if ov >= 8 else
-                           "MODERATE dependence on how this writer annotates scripts" if ov >= 5 else
-                           "STRONG dependence: ranking changes a lot without the annotation, so a "
-                           "show written differently could break the tool")  # fmt: skip
+                terms = list(ab.info.get("terms") or [])
+                seen = signal_occurrences(r.show, terms)
+                if seen == 0:
+                    verdict = "not applicable: signal absent in this show (0 annotations to remove)"
+                else:
+                    verdict = f"{dependence_verdict(ov, k)} ({seen} annotated beats)"
                 L.append(f"- Verdict: {verdict}.")
             else:
                 L.append(
@@ -394,7 +435,7 @@ def build_report(r: ReportInput) -> str:
             )
         L.append("")
         if stability.top10_changed is not None:
-            L.append(f"- Top-10 picks that change when the top 10 are re-scored: **{stability.top10_changed}/10** "
+            L.append(f"- Top-10 picks that change when the top 10 are re-scored: **{stability.top10_changed}/{eff_k(r.result.pre_rerank_top)}** "
                      f"(pre-rerank ranking).")  # fmt: skip
         if stability.note:
             L.append(f"- Note: {stability.note}")
@@ -406,7 +447,8 @@ def build_report(r: ReportInput) -> str:
     L += ["## 8. Golden set", ""]
     g = r.golden
     if g:
-        L += [f"- {g.n_golden} labelled promos; precision@{g.k} = **{g.precision_at_k}**, recall@{g.k} = {g.recall_at_k} "
+        kg = min(g.k, len(promos))  # a 6-promo run is precision@6, not @10
+        L += [f"- {g.n_golden} labelled promos; precision@{kg} = **{g.precision_at_k}**, recall@{kg} = {g.recall_at_k} "
               f"(match = IoU >= {g.iou_threshold})", "",
               "| golden promo | best IoU | rank of best match | in top-k |", "|---|---|---|---|"]  # fmt: skip
         for m in g.matches:
@@ -460,7 +502,7 @@ def build_report(r: ReportInput) -> str:
         L += _examples(items)
         L.append("")
     L += [
-        f"**Coverage**: the top 10 come from {len(eps)} distinct episodes ({', '.join(map(str, eps))}); "
+        f"**Coverage**: the top {len(top10)} come from {len(eps)} distinct episodes ({', '.join(map(str, eps))}); "
         f"promos overall from {len({s.episode for p in promos for s in p.segments})} of {len(r.show.episodes)} episodes.",
         "",
         "**Structural limits (not measurable from the script alone)**",
