@@ -38,7 +38,7 @@ test.beforeEach(async ({ page, request }) => {
 
 test.afterEach(() => expect(failures).toEqual([]));
 
-test("run selection, variants and keyboard navigation", async ({ page }) => {
+test("run selection by link, variants and keyboard navigation", async ({ page }) => {
   await open(page);
   const items = page.getByRole("navigation", { name: "Ranked promos" }).getByRole("button");
   await expect(items).toHaveCount(promos.length);
@@ -50,8 +50,10 @@ test("run selection, variants and keyboard navigation", async ({ page }) => {
   await page.getByRole("combobox", { name: "Ranking", exact: true }).selectOption("ablation_episode_end_prior");
   await expect(page.getByText("You are viewing an ablation", { exact: false })).toBeVisible();
   await expect(page.getByRole("button", { name: "Approve", exact: true })).toHaveCount(0);
-  const secondary = await page.getByRole("combobox", { name: "Run", exact: true }).locator("option").filter({ hasText: "browser-secondary" }).getAttribute("value");
-  await page.getByRole("combobox", { name: "Run", exact: true }).selectOption(secondary);
+  const runs = await (await page.request.get("/api/runs")).json();
+  const secondary = runs.find((r) => r.model === "mock/browser-secondary").id;
+  await page.evaluate((id) => { location.hash = `#run=${encodeURIComponent(id)}`; }, secondary);
+  await expect.poll(() => hashOf(page)).toContain(encodeURIComponent(secondary));
   await expect(page.getByRole("button", { name: "Approve", exact: true })).toBeVisible();
 });
 
@@ -215,17 +217,15 @@ test("a pasted link to another run loads that run", async ({ page, request }) =>
   const runs = await (await request.get("/api/runs")).json();
   const other = runs.find((r) => r.model === "mock/browser-secondary");
   await page.evaluate((id) => { location.hash = `#run=${encodeURIComponent(id)}`; }, other.id);
-  await expect(page.getByLabel("Run")).toHaveValue(other.id);
-  expect(await hashOf(page)).toContain(encodeURIComponent(other.id));
+  await expect.poll(() => hashOf(page)).toContain(encodeURIComponent(other.id));
   await page.goBack();
-  await expect(page.getByLabel("Run")).toHaveValue(runId);
+  await expect.poll(() => hashOf(page)).toContain(encodeURIComponent(runId));
 });
 
 test("a hash naming an unknown run is corrected instead of leaving URL and screen apart", async ({ page }) => {
   await open(page);
   await page.evaluate(() => { location.hash = "#run=does-not-exist%2Fnope"; });
   await expect.poll(() => hashOf(page)).toContain(encodeURIComponent(runId));
-  await expect(page.getByLabel("Run")).toHaveValue(runId);
 });
 
 test("phone layout keeps the review stats in one compact row above the shortlist", async ({ page }) => {
@@ -303,4 +303,11 @@ test("a file that is not a screenplay shows a readable error and the form stays 
   await page.getByRole("button", { name: "Find promos" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "no parseable episodes" })).toBeVisible({ timeout: 30000 });
   await expect(page.getByRole("button", { name: "Find promos" })).toBeEnabled();
+});
+
+test("there is no Run dropdown; the page shows the run it was opened with", async ({ page }) => {
+  await open(page);
+  await expect(page.getByRole("combobox", { name: "Run", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("combobox", { name: "Ranking", exact: true })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Ranked promos" })).toBeVisible();
 });

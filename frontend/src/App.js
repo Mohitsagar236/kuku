@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { html } from "./ui.js";
 import { getJSON, sendJSON } from "./api.js";
 import { readHash, writeHash } from "./navigation.js";
-import { KIND, when, variantLabel, pct, demoScoring, isRulesOnly } from "./format.js";
+import { KIND, variantLabel, pct, demoScoring, isRulesOnly } from "./format.js";
 import { Markdown } from "./Markdown.js";
 import { CopyButton } from "./components/CopyButton.js";
 import { State } from "./components/State.js";
@@ -250,7 +250,6 @@ export function App() {
       <${Analyze} onDone=${(r) => { setRunId(r.id); setReload((n) => n + 1); }} />
     </div>`;
 
-  const shows = [...new Set(runs.map((r) => r.show))];
   const dl = (name) => `/api/file?id=${encodeURIComponent(runId)}&name=${name}`;
 
   return html`<div class="app">
@@ -260,16 +259,6 @@ export function App() {
         <div><h1>Promo Finder</h1><span class="brand-caption">THE EDITOR WORKSPACE</span></div>
       </div><span class="local-badge"><span></span> ${isDemo ? "Public demo" : "Local workspace"}</span>
       <div class="workspace-controls">
-      <label class="field">
-        <span>Run</span>
-        <select aria-label="Run" value=${runId} onChange=${(e) => { setRunId(e.target.value); setVariant("main"); }}>
-          ${shows.map((s) => html`<optgroup key=${s} label=${s}>
-            ${runs.filter((r) => r.show === s).map((r) => html`<option key=${r.id} value=${r.id}>
-              ${KIND[r.kind] || r.kind} · ${when(r.generated_at)} · ${r.model || "unknown model"} · ${r.count} promos${r.partial ? " · partial" : ""}
-            </option>`)}
-          </optgroup>`)}
-        </select>
-      </label>
       ${run && Object.keys(run.variants).length > 1
         ? html`<label class="field">
             <span>Ranking</span>
