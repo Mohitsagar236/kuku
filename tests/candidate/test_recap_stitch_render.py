@@ -1,13 +1,12 @@
 import hashlib
 
-from candidate_service import generate_candidates
-from candidate_service.context import EpCtx
-from candidate_service.generate import _fingerprint, _replayed, build_contexts
-from candidate_service.recap import detect_recap, normalize_line
-from candidate_service.render import estimate_tokens, project, render_candidate
-from promo_common.schemas import Candidate
-from promo_common.validation import validate_segments
-
+from promo_finder.candidates import generate_candidates
+from promo_finder.candidates.context import EpCtx
+from promo_finder.candidates.generate import _fingerprint, _replayed, build_contexts
+from promo_finder.candidates.recap import detect_recap, normalize_line
+from promo_finder.candidates.render import estimate_tokens, project, render_candidate
+from promo_finder.domain.models import Candidate
+from promo_finder.domain.validation import validate_segments
 from tests.candidate.conftest import D, dense_episode, line_text, make_episode, make_show
 
 
@@ -43,7 +42,7 @@ def test_recap_duplicate_is_deduped_across_episode_boundary(cfg, lex) -> None:
     # no two surviving candidates from different episodes replay >=2 lines of each other
     fps = []
     for c in cands:
-        from candidate_service.windows import Built
+        from promo_finder.candidates.windows import Built
 
         fps.append(
             (

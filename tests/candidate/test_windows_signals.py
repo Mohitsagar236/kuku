@@ -1,8 +1,7 @@
-from candidate_service.context import EpCtx
-from candidate_service.signals import make_view, score_cliff, score_hook
-from candidate_service.windows import enumerate_windows, nms
-from promo_common.cuts import CONTENT_TYPES
-
+from promo_finder.candidates.context import EpCtx
+from promo_finder.candidates.signals import make_view, score_cliff, score_hook
+from promo_finder.candidates.windows import enumerate_windows, nms
+from promo_finder.domain.cuts import CONTENT_TYPES
 from tests.candidate.conftest import A, C, D, S, dense_episode, make_episode
 
 

@@ -146,3 +146,24 @@ Format: what the AI got wrong -> how it was caught -> fix.
 40. **My own test mistakes while adding the doctor tests:** a base URL with `?token=` appended
     (breaks `/models`), assertions that were too weak to prove anything (`rc in (0, 1)`, a tautological
     estimate check), and a wrong attribute name. All caught by running the tests, then strengthened.
+
+
+## Architecture migration (2026-11-08)
+
+Codex inspected the application and migrated it to a single src-layout Python package, split pipeline contracts from CLI presentation, replaced the custom HTTP server with FastAPI/Uvicorn, and converted the CDN viewer to modular React built by Vite. It retained the existing algorithms, prompts and editor-feedback work. Added checks cover strict API input, stale screenplay detection, symlink confinement, concurrent call-budget admission and package installation. Whole-package typing replaced shared-library-only typing.
+
+One implementation correction: the app-bundled Node runtime rejected Rollup's native module on macOS because of its signing policy. A standard Node runtime was used to build and test the viewer. Initial API tests also exposed unknown-POST routing and missing-build behavior; those were resolved before verification. No real LLM calls were made to validate this migration. See docs/ARCHITECTURE.md for supported deployment limits.
+
+
+## Functional audit (2026-11-08)
+
+Codex ran the complete suite and added a persistent Playwright browser suite and CI step. Browser tests reproduced two issues missed by API tests: a note blur-save could discard the following verdict click, and a deep link to an ablation promo was resolved against the main ranking. The editor now serializes writes and preserves drafts; selection resolves against the requested variant. Added CLI regressions reject invalid golden files before model calls and handle corrupt comparison JSON cleanly. Final results are recorded in docs/VERIFICATION.md. Fresh Gemini scoring used three real API calls on one supplied episode; the 50-episode run and both ablations reused cached judgments.
+
+
+## Assignment completion audit and editor design (2026-11-08)
+
+Codex refined the React editor with search, review filters, keyboard-aware candidate navigation, responsive layouts and a teal/sage/coral visual theme. It then compared Problem 1 against the six-page assignment brief, verified the unchanged 50-episode source and all 90 delivered cuts across main/ablation rankings without new screenplay/model calls, and refreshed the two-page solution documents and distribution packages. A generic Gemini doctor call checked connectivity without sending source text.
+
+One error in the earlier test-only audit: it reported ten malformed-artifact regressions but did not fix them before UI work continued. The completion audit closes that gap. The run repository now validates artifact envelopes and promo records before listing or serving them, skips a malformed main run without hiding healthy runs, and returns a clean corrupt-artifact error on direct access. Regression coverage includes invalid metadata, missing segments, invalid moments and corrupt variants. A reusable source audit checks quotes, timing and CSV ranking, including a negative test that detects a damaged CSV.
+
+The browser runner now accepts PF_TEST_PORT instead of requiring temporary test copies when the default port is busy. Source content, keys and confidential outputs remain excluded from public packages. Test evidence, remaining human evaluation limits, and actual publication/submission status are recorded in docs/ASSIGNMENT_COMPLETION.md.

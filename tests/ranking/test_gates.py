@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import pytest
-from promo_common.schemas import LLMScores
-from ranking_service import load_ranking_config, rank
-from ranking_service.fusion import attribution, failed_gates, fuse
 
+from promo_finder.domain.models import LLMScores
+from promo_finder.ranking import load_ranking_config, rank
+from promo_finder.ranking.fusion import attribution, failed_gates, fuse
 from tests.ranking.test_ranking import llm_scores, mk
 from tests.shared import make_llm  # noqa: F401  (fixtures: show)
 

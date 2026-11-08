@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from candidate_service import generate_candidates
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
-from promo_common.cuts import CONTENT_TYPES, PROTECTED_TYPES
-from promo_common.schemas import BeatType, Show
-from promo_common.validation import validate_segments
 
+from promo_finder.candidates import generate_candidates
+from promo_finder.domain.cuts import CONTENT_TYPES, PROTECTED_TYPES
+from promo_finder.domain.models import BeatType, Show
+from promo_finder.domain.validation import validate_segments
 from tests.candidate.conftest import make_episode, make_show
 
 TEXTS = [

@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import pytest
-from promo_common.cuts import CONTENT_TYPES, is_valid_cut, protected_spans
-from promo_common.schemas import Candidate, RuleSignals, Segment
-from promo_common.validation import validate_segments
-from ranking_service import load_ranking_config, rank
-from scoring_service import Scorer, load_scoring_config
-from scoring_service.ids import IdMap, build_view, end_options
 
+from promo_finder.domain.cuts import CONTENT_TYPES, is_valid_cut, protected_spans
+from promo_finder.domain.models import Candidate, RuleSignals, Segment
+from promo_finder.domain.validation import validate_segments
+from promo_finder.ranking import load_ranking_config, rank
+from promo_finder.scoring import Scorer, load_scoring_config
+from promo_finder.scoring.ids import IdMap, build_view, end_options
 from tests.candidate.conftest import D, line_text, make_episode, make_show
 from tests.shared import SpyMock, make_llm
 

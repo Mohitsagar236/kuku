@@ -2,12 +2,12 @@ import json
 import logging
 
 import pytest
-from ingestion_service.__main__ import main
-from promo_common.config import Settings
-from promo_common.errors import IngestionError, NotFound
-from promo_common.logging import JsonFormatter, job_id_var, request_id_var
-from promo_common.schemas import Beat, BeatType
 
+from promo_finder.domain.errors import IngestionError, NotFound
+from promo_finder.domain.models import Beat, BeatType
+from promo_finder.infrastructure.config import Settings
+from promo_finder.infrastructure.logging import JsonFormatter, job_id_var, request_id_var
+from promo_finder.ingestion.__main__ import main
 from tests.unit.test_parser import FIX
 
 

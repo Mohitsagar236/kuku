@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import pytest
-from promo_common.schemas import Candidate, LLMScores, RuleSignals, Segment
-from promo_common.validation import validate_segments
-from ranking_service import load_ranking_config, rank
-from ranking_service.build import finalize
-from ranking_service.fusion import fuse
-from ranking_service.rank import apply_rerank
-from ranking_service.select import candidate_iou, same_ending, select
 
+from promo_finder.domain.models import Candidate, LLMScores, RuleSignals, Segment
+from promo_finder.domain.validation import validate_segments
+from promo_finder.ranking import load_ranking_config, rank
+from promo_finder.ranking.build import finalize
+from promo_finder.ranking.fusion import fuse
+from promo_finder.ranking.rank import apply_rerank
+from promo_finder.ranking.select import candidate_iou, same_ending, select
 from tests.shared import SpyMock, make_llm  # noqa: F401  (fixtures: show, cands)
 
 
@@ -159,7 +159,7 @@ def test_trim_applied_only_when_it_still_validates(show, rcfg) -> None:
 
 
 def test_rank_end_to_end_on_scored_candidates(show, cands, rcfg) -> None:
-    from scoring_service import Scorer, load_scoring_config
+    from promo_finder.scoring import Scorer, load_scoring_config
 
     llm = make_llm()
     scores = Scorer(llm, show, load_scoring_config()).score(cands)

@@ -58,10 +58,10 @@
 <h2>4. Architecture, tools, and what is AI vs code</h2>
 <table>
   <tr><th>Part</th><th>Done by</th><th>Implementation</th></tr>
-  <tr><td>Parsing, candidate search, rule signals, caps, validation of every cut</td><td>Code</td><td>Python 3.12, Pydantic schemas; YAML config and keyword lexicon (<code>config/</code>). A cut that breaks a rule is never delivered.</td></tr>
-  <tr><td>Hook, cliffhanger, intensity, spoiler, blind clarity, end choice, rerank</td><td>LLM</td><td>Versioned prompts in <code>prompts/</code>; JSON answers validated, then retried on failure</td></tr>
+  <tr><td>Parsing, candidate search, rule signals, caps, validation of every cut</td><td>Code</td><td>Python 3.12, Pydantic schemas; YAML config and keyword lexicon (<code>resources/config/</code>). A cut that breaks a rule is never delivered.</td></tr>
+  <tr><td>Hook, cliffhanger, intensity, spoiler, blind clarity, end choice, rerank</td><td>LLM</td><td>Versioned prompts in <code>resources/prompts/</code>; JSON answers validated, then retried on failure</td></tr>
   <tr><td>Provider layer</td><td>Code</td><td>Gemini, Groq, Anthropic, OpenAI, Ollama, mock or none via <code>.env</code>; response cache (resume without re-billing), per-minute/day rate limits, call and USD budgets.</td></tr>
-  <tr><td>Final choice of what to post</td><td>Editor</td><td>Viewer and CSV; each promo carries reasons, flags and a confidence value</td></tr>
+  <tr><td>Final choice of what to post</td><td>Editor</td><td>FastAPI + React editor and CSV; source excerpts, cut controls, saved verdicts and notes</td></tr>
 </table>
 <p class="note"><b>Tested live: Gemini only</b> (<code>gemini-3.5-flash-lite</code> for the full run and smoke runs, <code>gemini-3.1-flash-lite</code> in one smoke run). Groq, Anthropic, OpenAI and Ollama are tested only against mocked HTTP replies. Swapping models is a two-line <code>.env</code> change (<code>LLM_PROVIDER</code>, <code>LLM_MODEL</code>).</p>
 
@@ -82,8 +82,8 @@ final = 0.5·score + 0.5·listwise rerank score        (top 30 only; stitched pr
   <tr><td>Rank them: which to post first and why</td><td><code>rank</code>, <code>post_first_because</code>, <code>ranking.md</code>; top 3 below</td></tr>
   <tr><td>Check quality: where does it pick badly?</td><td><code>quality_report.md</code> §9 and section 8 below</td></tr>
 </table>
-<p class="note">Top 3 to post first (run <code>20261108-140409</code>; scores 0–10):</p>
-<!--top3 run=i-married-a-broken-soldier-he-was-a-duke/20261108-140409
+<p class="note">Top 3 to post first (run <code>20261108-153346</code>; scores 0–10):</p>
+<!--top3 run=i-married-a-broken-soldier-he-was-a-duke/20261108-153346
 1919c497a1f5|Public confrontation that ends on a weapon threat
 bcc102e451df|Defiance in a chapel, cut on an explosion and an armed arrival
 fbed312c9d40|Fire rescue, cut on a falling beam
@@ -106,7 +106,7 @@ fbed312c9d40|Fire rescue, cut on a falling beam
   <li><b>Rules-only baseline:</b> only 4 of its top 10 overlap the LLM's top 10. 7 of the rules' top 10 just end at an episode's end, against 1 of 10 for the LLM run.</li>
   <li><b>Ablations:</b> removing the writer's literal "cliffhanger" annotations keeps 7/10 of the top 10 (moderate dependence). Removing the episode-end prior keeps 5/10.</li>
   <li><b>Smoke runs</b> (3 episodes, live API): 10–12 calls, 74–105 output tokens per candidate, 0 invalid or truncated replies after the fixes.</li>
-  <li><b>Engineering:</b> 242 automated tests (mock LLM, synthetic scripts), 96% line coverage, lint and type checks, plus a scan (PDFs included) that fails on any 8-word script passage or quoted 4-word line of dialogue in a committable file.</li>
+  <li><b>Engineering:</b> Python regressions, real-browser editor tests, package installation, lint and typing, plus a confidentiality scan (PDFs included) that fails on any 8-word script passage or quoted 4-word line of dialogue in a committable file.</li>
 </ul>
 </div>
 </div>
@@ -123,7 +123,7 @@ fbed312c9d40|Fire rescue, cut on a falling beam
 <p><b>Scale and cost.</b> Candidate generation is pure code: about 13 s for 50 episodes on an 8 GB laptop with no LLM. By construction one show needs about 70 LLM calls for the main ranking (428 candidates in batches of 8, stitched in batches of 5, clarity in batches of 6, 2 rerank passes), at about 2,200 input tokens per scoring call. That is within the 200 requests/day configured for the free key; the cache makes an interrupted run resume without re-billing. At catalogue scale it is a per-show batch job; paid cost is calls × token price, capped by per-run budgets. <b>Next:</b> editor-labelled golden set; a one-line show premise in the blind clarity check to cut false "needs context" flags; a stronger judge via <code>.env</code>; fit the weights to how posted promos actually perform.</p>
 
 <h2>9. AI tools used, and one place they got it wrong</h2>
-<p>Claude Code (Claude Sonnet 5.5; Claude Opus 5.5 for the final audit) wrote most of the code under my design and review; every mistake and fix is logged in <code>AI_USAGE.md</code>. <b>One place it got it wrong:</b> it matched the model's candidate IDs case-sensitively. Gemini answered <code>"C1"</code>, the code expected <code>c1</code>, and the always-lowercase mock let all 169 tests pass, but the first real smoke run rejected 11 of 36 answers. Case-insensitive matching plus a regression test fixed it (0 rejections on the next run).</p>
+<p>Claude Code built the initial pipeline; Codex assisted with the modular package, FastAPI/React editor, browser tests and final audit. Development history and corrections are logged in <code>AI_USAGE.md</code>. <b>One place it got it wrong:</b> it matched the model's candidate IDs case-sensitively. Gemini answered <code>"C1"</code>, the code expected <code>c1</code>, and the always-lowercase mock let all 169 tests pass, but the first real smoke run rejected 11 of 36 answers. Case-insensitive matching plus a regression test fixed it (0 rejections on the next run).</p>
 
 </body>
 </html>

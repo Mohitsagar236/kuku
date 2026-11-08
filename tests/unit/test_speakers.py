@@ -1,5 +1,5 @@
-from ingestion_service.speakers import build_alias_map, resolve_speakers
-from promo_common.schemas import Beat, BeatType, Episode, Scene
+from promo_finder.domain.models import Beat, BeatType, Episode, Scene
+from promo_finder.ingestion.speakers import build_alias_map, resolve_speakers
 
 
 def _ep(*names: str) -> Episode:

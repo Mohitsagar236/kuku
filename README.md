@@ -1,89 +1,91 @@
 # Promo Finder
 
-Reads a folder of microdrama screenplay episodes (`episode-NNN-*.txt`, timestamped scenes,
-dialogue and action) and proposes ranked 20–60 s promos: for each one the episode, start and end
-of every segment, the hook, the cliffhanger, one line on why it works, and a quality report on
-where the tool picks badly. The LLM is swappable through `.env` only.
+Find ranked 20–60 second promos in timestamped microdrama screenplays. Each result includes ordered episode cuts, source-backed hooks and cliffhangers, ranking reasons, confidence and quality checks. Promos can be continuous or stitched.
 
-> **Confidential input.** Outputs quote the script. `outputs/`, `.cache/` and `.env` are
-> git-ignored; never commit or publish them. `make check-confidential SHOW_DIR=...` fails if any
-> committable file (PDFs included) contains an 8-word passage from the input or a quoted span
-> sharing 4+ words with a line of dialogue.
+The application is a Python modular monolith with a FastAPI editor API and a locally bundled React viewer. See [architecture and operating limits](docs/ARCHITECTURE.md) for boundaries, migration decisions and deployment scope.
 
-## Requirements
+## Install
 
-- Python 3.12 (`python3.12` on PATH)
-- No API key needed for the rules-only mode. For LLM scoring, one free-tier key
-  (Gemini or Groq), or a local Ollama model.
-- The viewer loads React from unpkg.com, so the browser needs internet access.
-
-## Setup
+Requires Python 3.12+, Node 22.12+ and npm to build the viewer (CI uses Node 24).
 
 ```bash
-make install            # creates .venv and installs the package + dev tools
-cp .env.example .env    # then set LLM_PROVIDER / GEMINI_API_KEY etc.
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements-dev.lock
+.venv/bin/pip install --no-deps -e .
+make frontend-install frontend-build
+cp .env.example .env
 ```
+
+A built wheel includes the viewer, prompts and configuration; end users installing that wheel only need Python. `make install` creates the same locked editable development installation.
 
 ## Run
 
 ```bash
-SHOW="path/to/show-folder"                   # folder of episode-NNN-*.txt files
-
-make doctor    SHOW_DIR="$SHOW"             # preflight: .env, provider, model, 1 test call, quota, input parses
-make run-rules SHOW_DIR="$SHOW"             # free baseline, no LLM, no key
-make smoke     SHOW_DIR="$SHOW" EPISODES=1-3 # a few episodes through the real LLM, health check
-make run       SHOW_DIR="$SHOW"             # full run: parse -> candidates -> LLM scoring -> rank -> report
-make ui                                       # viewer at http://127.0.0.1:8765 (PORT=... to change)
+SHOW="path/to/show-folder"
+make run-rules SHOW_DIR="$SHOW"           # free, no API calls
+make doctor SHOW_DIR="$SHOW"              # provider preflight; one live test call
+make smoke SHOW_DIR="$SHOW" EPISODES=1-3  # small live validation
+make run SHOW_DIR="$SHOW"                 # full analysis
+make ui                                   # http://127.0.0.1:8765
 ```
 
-Each run writes `outputs/<show>/<timestamp>/`: `promos.json`, `promos.csv`, `ranking.md`,
-`quality_report.md`, `run_metadata.json`, ablation rankings, and raw LLM replies in `llm_raw/`.
-A full run also refreshes `outputs/<show>/rules_baseline/`. Re-running resumes from the response
-cache in `.cache/llm`, so an interrupted run does not re-bill finished calls.
+The viewer browses runs and robustness variants, downloads CSV/cut lists, displays quality reports, saves editor verdicts and suggests valid cut adjustments. It needs no browser internet connection after installation. Arrow keys or j/k move through promos. Review data lives in `outputs/<show>/editor_feedback.yaml`; refresh report metrics with `make feedback RUN=outputs/<show>/<run>`.
 
-Other commands: `.venv/bin/python -m promo_finder_cli --help` (`compare` two smoke runs side by side,
-`package` the latest run as a zip for private upload).
+`python -m promo_finder --help` or `.venv/bin/promo-finder --help` lists commands. `--episodes`, `--no-ablation`, `--stability`, `--allow-partial`, `--no-cache` and `--out` control individual runs. Run `compare` for two smoke results, and `package` for a private output archive. The old internal Python module paths have been replaced; existing Make targets and output formats are preserved.
 
-## Swapping the model
+## Models and configuration
 
-Set these in `.env`; no code changes:
+Select a provider in `.env`: `gemini`, `groq`, `anthropic`, `openai`, `openai_compatible`, `ollama`, `mock` or `none`. Set `LLM_MODEL` and the relevant provider key. For a compatible gateway, set `LLM_BASE_URL`, `LLM_MODEL`, optional `LLM_API_KEY` and optional JSON `LLM_EXTRA_HEADERS`. CLI `--provider` and `--model` override one run. `.env.example` lists settings.
 
-| Variable | Meaning |
-|---|---|
-| `LLM_PROVIDER` | `gemini`, `groq`, `anthropic`, `openai`, `openai_compatible`, `ollama`, `mock`, or `none` (rules only) |
-| `LLM_MODEL` | blank = provider default |
-| `<PROVIDER>_API_KEY` | key for the chosen provider |
-| `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_EXTRA_HEADERS` | for `openai_compatible` (any OpenAI-style endpoint): base URL ending before `/chat/completions`, optional bearer key, optional JSON object of extra headers |
-| `LLM_RPM`, `LLM_RPD` | your key's real per-minute / per-day limits (the client throttles to them) |
-| `LLM_BUDGET_USD`, `LLM_BUDGET_CALLS` | optional per-run caps; the run stops (or finishes on rules with `--allow-partial`) |
+Use `LLM_MAX_CONCURRENCY`, `LLM_RPM` and `LLM_RPD` for the provider key's actual limits. `LLM_BUDGET_CALLS` caps logical calls atomically; retries remain part of each call. `LLM_BUDGET_USD` is based on observed token usage, so concurrent in-flight calls can exceed it. Run only one analysis process per provider key. Responses are cached in `.cache/llm` for resume; changed inputs/prompts/models require new judgments.
 
-`--provider` / `--model` on the command line override `.env` for one run.
+Versioned defaults are in `src/promo_finder/resources/config/`; prompts are in `src/promo_finder/resources/prompts/`. `PF_CONFIG_DIR` and `PF_PROMPTS_DIR` override them explicitly. Installed packages work outside the checkout. Relative `.env`, cache and output paths resolve from the working directory.
 
-**What has been tested live:** only Gemini (`gemini-3.5-flash-lite` for the full 50-episode run
-and smoke runs, `gemini-3.1-flash-lite` in one smoke run). Groq, Anthropic, OpenAI and Ollama
-adapters are tested only against mocked HTTP replies in the test suite, and `openai_compatible` against a
-local stub HTTP server: none has been run against a real service, so run `make doctor` and then
-`make smoke` first. See `INTERVIEW.md` for the fresh-clone runbook, runtimes and troubleshooting.
+Previous live validation covered Gemini only. Other provider adapters have automated HTTP tests; run doctor and smoke before trusting a real endpoint. This architecture migration does not claim new live model validation.
 
-## The viewer
+## Outputs and confidentiality
 
-`make ui` serves a read-only page over `outputs/`: pick a run and ranking, step through promos
-(↑/↓ or j/k), copy a promo's timestamps, download the CSV, and read the quality report. It binds
-to 127.0.0.1 only and refuses requests for any other host name, because the outputs are
-confidential. It is not meant to be deployed publicly.
+Each completed run writes `outputs/<show>/<timestamp>/` with `promos.json`, `promos.csv`, `ranking.md`, `quality_report.md`, `run_metadata.json`, optional ablations and raw LLM replies. Full runs can refresh `rules_baseline/`. Files are replaced atomically; new runs become visible after all core artifacts are written.
 
-## Tests and checks
+The screenplay pack and derived output contain confidential content. `.env`, `.cache/`, `outputs/`, labels and private submission PDFs remain ignored. Do not publish them. `make check-confidential SHOW_DIR="$SHOW"` checks committable files, including PDFs, for screenplay passages. Inputs are sent only to the explicitly selected LLM provider during analysis; `none` makes no model calls.
+
+## Develop and package
 
 ```bash
-make check    # ruff lint + format check, mypy, pytest with coverage
-make docs     # docs/SOLUTION.pdf (public, no quotes) + docs/SOLUTION_submission.pdf (private); max 2 pages
+make check              # Python + frontend + architecture checks
+# First browser-test setup: (cd frontend && npx playwright install chromium)
+make browser-test       # live browser regressions against isolated synthetic runs
+# If the default test port is occupied: PF_TEST_PORT=18877 make browser-test
+make wheel              # built viewer + sdist/wheel under dist/
+make docs               # existing two-page solution-document workflow
 ```
 
-Tests use a mock LLM and synthetic fixtures; they never call a real provider, even if `.env`
-holds a key.
+`requirements.lock` pins runtime dependencies; `requirements-dev.lock` pins the development environment; `frontend/package-lock.json` pins browser build dependencies. Review and regenerate them together when upgrading. CI runs the checks and verifies a clean wheel installation outside the repository.
 
-## Exit codes
+The supported deployment is local: `.venv/bin/promo-viewer --port 8765 --outputs outputs`. The API has `/healthz`, `/readyz` and `/api/openapi.json`. A non-root multi-stage Docker recipe is included:
 
-`0` ok · `2` bad input or configuration (missing folder, no parseable episodes, bad episode
-range, unknown provider, missing key) · `3` stopped by quota or budget (re-run to resume) ·
-`4` smoke run found problems (see its summary).
+```bash
+docker build -t promo-finder .
+docker run --rm -p 127.0.0.1:8765:8765 \
+  -v "$PWD/outputs:/app/outputs" promo-finder
+```
+
+Reviewing existing results works without the source pack. Cut adjustments require the source at the path recorded in run metadata; for containers, mount that directory at the same absolute path or generate the run inside the container. This application has no authentication or multi-tenant isolation; public deployment is outside its supported operating model.
+
+CLI exit codes: `0` success, `2` invalid input/configuration, `3` quota/budget stop, `4` smoke problems, `130` interrupted.
+
+## Assignment handoff
+
+See [requirement-by-requirement completion status](docs/ASSIGNMENT_COMPLETION.md).
+The public two-page explanation is [SOLUTION.pdf](docs/SOLUTION.pdf). Keep the private
+solution and output archive off the public repository.
+
+```bash
+# Validate an existing run against its source without making model calls
+.venv/bin/python scripts/audit_deliverables.py "$SHOW" "$RUN" --json outputs/assignment-audit.json
+# Package the supplied assignment run, original replies and private solution
+.venv/bin/python scripts/prepare_submission.py
+```
+
+The submission archive is written under ignored `outputs/packages/`; it includes
+byte-for-byte copies and SHA-256 checksums. It contains confidential derived text.

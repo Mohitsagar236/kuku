@@ -10,9 +10,10 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from promo_common.llm import LLMAuthError, LLMConfigError, LLMRequest, LLMSettings
-from promo_common.llm.errors import LLMTransientError
-from promo_common.llm.factory import build_client, build_llm
+
+from promo_finder.infrastructure.llm import LLMAuthError, LLMConfigError, LLMRequest, LLMSettings
+from promo_finder.infrastructure.llm.errors import LLMTransientError
+from promo_finder.infrastructure.llm.factory import build_client, build_llm
 
 REQ = LLMRequest(system="SYS", user="USER", task="score", max_tokens=64)
 OK_BODY = {
@@ -161,7 +162,7 @@ def test_misconfiguration_is_a_clear_config_error(
 def test_cli_reports_config_errors_in_one_line(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    from promo_finder_cli.__main__ import main
+    from promo_finder.interfaces.cli.__main__ import main
 
     fixture = Path(__file__).parents[1] / "fixtures" / "synthetic_show"
     monkeypatch.setenv("LLM_BASE_URL", "")

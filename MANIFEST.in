@@ -1,0 +1,13 @@
+include Makefile Dockerfile requirements.lock requirements-dev.lock
+include docs/ARCHITECTURE.md INTERVIEW.md AI_USAGE.md
+recursive-include frontend *.json *.js *.css *.html
+recursive-include tests *.py *.txt
+recursive-include scripts *.py
+prune frontend/node_modules
+prune frontend/__pycache__
+global-exclude *.pyc
+include docs/SOLUTION.html docs/SOLUTION.pdf docs/VERIFICATION.md docs/ASSIGNMENT_COMPLETION.md
+prune frontend/test-results
+prune frontend/playwright-report
+include .env.example .gitignore .dockerignore .pre-commit-config.yaml
+recursive-include .github *.yml *.yaml

@@ -1,7 +1,6 @@
-from promo_common.cuts import is_valid_cut, protected_spans
-from promo_common.schemas import Segment
-from promo_common.validation import validate_segments
-
+from promo_finder.domain.cuts import is_valid_cut, protected_spans
+from promo_finder.domain.models import Segment
+from promo_finder.domain.validation import validate_segments
 from tests.candidate.conftest import A, C, D, S, dense_episode, make_episode, make_show
 
 

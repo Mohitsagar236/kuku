@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from promo_common.llm import LLMRequest, LLMResponse
-from promo_common.llm.cache import MemoryCache
-from promo_common.llm.managed import ManagedLLM
-from promo_common.llm.providers.mock import MockProvider
-
+from promo_finder.infrastructure.llm import LLMRequest, LLMResponse
+from promo_finder.infrastructure.llm.cache import MemoryCache
+from promo_finder.infrastructure.llm.managed import ManagedLLM
+from promo_finder.infrastructure.llm.providers.mock import MockProvider
 from tests.candidate.conftest import D, line_text, make_episode
 
 

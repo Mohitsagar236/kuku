@@ -1,9 +1,9 @@
 import pytest
-from candidate_service import generate_candidates, load_config, load_lexicon
-from candidate_service.config import CandidateConfig, Lexicon
-from promo_common.schemas import Candidate, Show
-from scoring_service import ScoringConfig, load_scoring_config
 
+from promo_finder.candidates import generate_candidates, load_config, load_lexicon
+from promo_finder.candidates.config import CandidateConfig, Lexicon
+from promo_finder.domain.models import Candidate, Show
+from promo_finder.scoring import ScoringConfig, load_scoring_config
 from tests.candidate.conftest import make_show
 from tests.shared import story_episode
 

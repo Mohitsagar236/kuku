@@ -2,18 +2,22 @@ import json
 
 import httpx
 import pytest
-from promo_common.llm import LLMRequest
-from promo_common.llm.errors import (
+
+from promo_finder.infrastructure.llm import LLMRequest
+from promo_finder.infrastructure.llm.errors import (
     DailyQuotaExhausted,
     LLMAuthError,
     LLMError,
     LLMRateLimitError,
     LLMTransientError,
 )
-from promo_common.llm.providers.anthropic import AnthropicProvider
-from promo_common.llm.providers.gemini import GeminiProvider
-from promo_common.llm.providers.ollama import OllamaProvider
-from promo_common.llm.providers.openai_compat import GroqProvider, OpenAICompatProvider
+from promo_finder.infrastructure.llm.providers.anthropic import AnthropicProvider
+from promo_finder.infrastructure.llm.providers.gemini import GeminiProvider
+from promo_finder.infrastructure.llm.providers.ollama import OllamaProvider
+from promo_finder.infrastructure.llm.providers.openai_compat import (
+    GroqProvider,
+    OpenAICompatProvider,
+)
 
 REQ = LLMRequest(system="SYS", user="USER", task="t", max_tokens=50)
 
@@ -237,8 +241,8 @@ def test_gemini_bare_invalid_argument_drops_thinking_config() -> None:
 
 
 def test_gemini_default_model_and_thinking_policy(monkeypatch) -> None:
-    from promo_common.llm import LLMSettings, build_client
-    from promo_common.llm.settings import DEFAULT_MODELS
+    from promo_finder.infrastructure.llm import LLMSettings, build_client
+    from promo_finder.infrastructure.llm.settings import DEFAULT_MODELS
 
     monkeypatch.delenv("LLM_THINKING_BUDGET", raising=False)
 

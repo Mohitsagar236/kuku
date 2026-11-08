@@ -1,0 +1,14 @@
+**
+!pyproject.toml
+!requirements.lock
+!src/
+!src/**
+!frontend/
+!frontend/**
+frontend/node_modules/
+src/promo_finder/resources/web/
+**/__pycache__/
+**/*.pyc
+.env
+outputs/
+.cache/

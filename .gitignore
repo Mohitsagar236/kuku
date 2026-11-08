@@ -36,3 +36,12 @@ golden.yaml
 
 # private copy of the solution doc with script quotes (for the submission form only)
 docs/SOLUTION_submission.pdf
+
+# Bundled viewer sources and build cache
+node_modules/
+src/promo_finder/resources/web/
+.import_linter_cache/
+
+# Browser regression artifacts
+frontend/test-results/
+frontend/playwright-report/

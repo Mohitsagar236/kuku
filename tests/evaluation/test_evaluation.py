@@ -4,7 +4,9 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from evaluation_service import (
+
+from promo_finder.domain.models import LLMScores
+from promo_finder.evaluation import (
     compare_scores,
     evaluate_golden,
     load_golden,
@@ -12,7 +14,6 @@ from evaluation_service import (
     spearman,
     topk_overlap,
 )
-from promo_common.schemas import LLMScores
 
 
 def seg(ep: int, s: float, e: float):
@@ -80,7 +81,7 @@ def test_golden_match_outside_top_k_is_not_counted() -> None:
 
 
 def load_golden_inline(rows):
-    from evaluation_service.golden import GoldenPromo, GSeg
+    from promo_finder.evaluation.golden import GoldenPromo, GSeg
 
     return [GoldenPromo(segments=[GSeg(episode=e, start_s=s, end_s=t)]) for e, s, t in rows]
 

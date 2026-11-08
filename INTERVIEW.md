@@ -1,13 +1,14 @@
 # Interview runbook: new show, maybe their model
 
-Python 3.12 and `make` needed. The viewer needs internet (it loads React from unpkg).
+Python 3.12 and `make` needed. Node/npm are needed to build the viewer once; the built viewer works offline.
 Measured = I ran it. Estimate = arithmetic, not timed.
 
 ## 1. Fresh clone to results (about 5 minutes + the run)
 
 ```bash
 git clone <repo-url> promo-finder && cd promo-finder
-make install                         # venv + dependencies
+make install                         # venv + Python dependencies
+make frontend-install frontend-build # install and bundle React locally
 cp .env.example .env                 # then edit .env (section 2)
 make doctor SHOW_DIR="/path/to/new-show"          # PASS/FAIL per check, prints no secrets
 make smoke  SHOW_DIR="/path/to/new-show" EPISODES=1-3   # 3 episodes on the real model
@@ -67,14 +68,14 @@ server. That is why `doctor` and `smoke` come before `run`.
 |---|---|---|
 | `--episodes 1-10` | run / smoke | only those episodes |
 | `--no-ablation` | run | skips the two robustness re-runs (biggest saving) |
-| `scoring.cascade_top: 60 -> 20` | `config/pipeline.yaml` | blind-clarity calls drop from about 10 to about 4 |
-| `candidate.top_n_per_episode: 8 -> 4` | `config/pipeline.yaml` | about half the scoring calls, fewer candidates |
+| `scoring.cascade_top: 60 -> 20` | `src/promo_finder/resources/config/pipeline.yaml` | blind-clarity calls drop from about 10 to about 4 |
+| `candidate.top_n_per_episode: 8 -> 4` | `src/promo_finder/resources/config/pipeline.yaml` | about half the scoring calls, fewer candidates |
 | `LLM_MAX_CONCURRENCY`, `LLM_RPM` | `.env` | faster if their key allows it |
 | `--allow-partial` | run | on quota/budget stop, finish the rest on rule scores |
 | `LLM_BUDGET_CALLS=50` or `LLM_BUDGET_USD=...` | `.env` | hard cap per run |
 
 Stability re-scoring is already off by default (`--stability` turns it on).
-Everything is cached: **re-running the same command resumes and re-bills nothing.**
+Validated judgments are cached: unchanged candidates/prompts/model can be reused; new or failed calls can still bill.
 
 ## 5. If something breaks
 

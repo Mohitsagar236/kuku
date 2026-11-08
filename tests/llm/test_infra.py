@@ -1,21 +1,28 @@
 from pathlib import Path
 
 import pytest
-from promo_common.llm import LLMRequest, LLMSettings, build_client, build_llm, load_prompt
-from promo_common.llm.budget import Budget, Pricing
-from promo_common.llm.cache import FileCache, MemoryCache, make_key
-from promo_common.llm.errors import (
+
+from promo_finder.infrastructure.llm import (
+    LLMRequest,
+    LLMSettings,
+    build_client,
+    build_llm,
+    load_prompt,
+)
+from promo_finder.infrastructure.llm.budget import Budget, Pricing
+from promo_finder.infrastructure.llm.cache import FileCache, MemoryCache, make_key
+from promo_finder.infrastructure.llm.errors import (
     BudgetExceeded,
     DailyQuotaExhausted,
     InvalidLLMOutput,
     LLMAuthError,
     LLMTransientError,
 )
-from promo_common.llm.json_utils import extract_json
-from promo_common.llm.managed import ManagedLLM
-from promo_common.llm.providers.gemini import GeminiProvider
-from promo_common.llm.providers.mock import MockProvider
-from promo_common.llm.ratelimit import RateLimiter
+from promo_finder.infrastructure.llm.json_utils import extract_json
+from promo_finder.infrastructure.llm.managed import ManagedLLM
+from promo_finder.infrastructure.llm.providers.gemini import GeminiProvider
+from promo_finder.infrastructure.llm.providers.mock import MockProvider
+from promo_finder.infrastructure.llm.ratelimit import RateLimiter
 
 
 # ---- rate limiter ----------------------------------------------------------------------------
@@ -228,3 +235,50 @@ def test_a_retry_that_gives_up_is_recorded_too() -> None:
         llm.complete(LLMRequest("s", "u", "score", meta={"candidates": []}))
     ev = llm.summary()["retries"]["events"]
     assert len(ev) == 3 and ev[-1]["gave_up"] is True
+
+
+def test_budget_reservation_is_atomic_across_concurrent_calls() -> None:
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    from promo_finder.infrastructure.llm.base import LLMClient, LLMResponse
+
+    entered = threading.Event()
+    release = threading.Event()
+
+    class SlowClient(LLMClient):
+        def complete(self, req: LLMRequest) -> LLMResponse:
+            entered.set()
+            assert release.wait(timeout=5)
+            return LLMResponse("{}", 0, 0, 0, "test", "test")
+
+    budget = Budget(max_calls=1)
+    llm = ManagedLLM(SlowClient(), budget=budget)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first = pool.submit(llm.complete, LLMRequest("s", "u"))
+        assert entered.wait(timeout=5)
+        try:
+            with pytest.raises(BudgetExceeded):
+                llm.complete(LLMRequest("s", "u"))
+        finally:
+            release.set()
+        first.result(timeout=5)
+    assert budget.calls == 1
+
+
+def test_failed_call_releases_budget_reservation() -> None:
+    budget = Budget(max_calls=1)
+    with pytest.raises(RuntimeError), budget.reserve():
+        raise RuntimeError("failed transport")
+    with budget.reserve():
+        budget.add(0)
+    with pytest.raises(BudgetExceeded), budget.reserve():
+        pass
+
+
+@pytest.mark.parametrize("value", [0, -1, 33])
+def test_invalid_concurrency_is_rejected(value: int) -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        LLMSettings(_env_file=None, max_concurrency=value)

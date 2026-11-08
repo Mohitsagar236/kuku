@@ -1,10 +1,12 @@
 [project]
 name = "promo-finder"
-version = "0.1.0"
+version = "0.2.0"
 description = "Finds 20-60s promo clips in microdrama screenplays"
 requires-python = ">=3.12"
 dependencies = [
-    "pydantic>=2.7",
+    "pydantic>=2.9,<3",
+    "fastapi>=0.115,<1",
+    "uvicorn>=0.30,<1",
     "pydantic-settings>=2.3",
     "pyyaml>=6",
     "httpx>=0.27",
@@ -13,25 +15,29 @@ dependencies = [
 ]
 
 [project.scripts]
-promo-finder = "promo_finder_cli.__main__:main"
+promo-finder = "promo_finder.interfaces.cli.__main__:main"
+promo-viewer = "promo_finder.interfaces.web.__main__:main"
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-cov", "ruff", "mypy", "hypothesis", "types-pyyaml"]
+dev = ["pytest", "pytest-cov", "ruff", "mypy", "hypothesis", "types-pyyaml", "build", "import-linter"]
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["libs/common", "services/ingestion", "services/candidate", "services/scoring", "services/ranking", "services/evaluation", "cli"]
+where = ["src"]
+
+[tool.setuptools.package-data]
+promo_finder = ["resources/config/*.yaml", "resources/prompts/*.md", "resources/web/*", "resources/web/assets/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["libs/common", "services/ingestion", "services/candidate", "services/scoring", "services/ranking", "services/evaluation", "cli"]
+pythonpath = ["src"]
 addopts = "-q"
 
 [tool.coverage.run]
-source = ["promo_common", "ingestion_service", "candidate_service", "scoring_service", "ranking_service", "evaluation_service", "promo_finder_cli"]
+source = ["promo_finder"]
 
 [tool.ruff]
 line-length = 100
@@ -43,13 +49,28 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["E501"]
 "**/report.py" = ["E501"]   # markdown text generation
-"cli/**" = ["E501"]   # CLI/report text output
+"src/promo_finder/interfaces/cli/**" = ["E501"]   # CLI/report text output
 
 [tool.mypy]
 python_version = "3.12"
 plugins = ["pydantic.mypy"]
-mypy_path = "libs/common:services/ingestion:services/candidate:services/scoring:services/ranking:services/evaluation:cli"
+mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = "promo_common.*"
+module = "promo_finder.domain.*"
 strict = true
+
+[tool.importlinter]
+root_package = "promo_finder"
+
+[[tool.importlinter.contracts]]
+name = "Domain stays independent of adapters and application features"
+type = "forbidden"
+source_modules = ["promo_finder.domain"]
+forbidden_modules = ["promo_finder.infrastructure", "promo_finder.application", "promo_finder.interfaces", "promo_finder.ingestion", "promo_finder.scoring", "promo_finder.candidates", "promo_finder.ranking", "promo_finder.evaluation"]
+
+[[tool.importlinter.contracts]]
+name = "Core never depends on delivery interfaces"
+type = "forbidden"
+source_modules = ["promo_finder.application", "promo_finder.infrastructure", "promo_finder.ingestion", "promo_finder.scoring", "promo_finder.candidates", "promo_finder.ranking", "promo_finder.evaluation"]
+forbidden_modules = ["promo_finder.interfaces"]

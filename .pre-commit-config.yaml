@@ -15,7 +15,7 @@ repos:
       - id: confidential-scan
         name: no script text in committable files
         # needs PF_REAL_SHOW_DIR=<path to the confidential input>; skips with a warning if unset
-        entry: .venv/bin/python -m promo_finder_cli check-confidential
+        entry: .venv/bin/python -m promo_finder.interfaces.cli check-confidential
         language: system
         pass_filenames: false
         always_run: true

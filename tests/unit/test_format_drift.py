@@ -1,7 +1,7 @@
 """Format drift a new show might have. The parser must degrade, never crash."""
 
-from ingestion_service import parse_episode
-from promo_common.schemas import BeatType
+from promo_finder.domain.models import BeatType
+from promo_finder.ingestion import parse_episode
 
 BASE = """EPISODE NUMBER: Episode 4
 EPISODE LOGLINE: A logline.
@@ -88,7 +88,7 @@ def test_missing_scene_times_derive_from_beats() -> None:
 
 
 def _show_with_unquoted(tmp_path, label: str):
-    from ingestion_service import load_show
+    from promo_finder.ingestion import load_show
 
     def ep(n: int, body: str) -> str:
         return (

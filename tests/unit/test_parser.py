@@ -1,10 +1,11 @@
 from pathlib import Path
 
 import pytest
-from ingestion_service import load_show, parse_episode
-from ingestion_service.parser import normalize_speaker
-from promo_common.errors import IngestionError
-from promo_common.schemas import BeatType
+
+from promo_finder.domain.errors import IngestionError
+from promo_finder.domain.models import BeatType
+from promo_finder.ingestion import load_show, parse_episode
+from promo_finder.ingestion.parser import normalize_speaker
 
 FIX = Path(__file__).parent.parent / "fixtures" / "synthetic_show"
 

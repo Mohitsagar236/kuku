@@ -1,5 +1,12 @@
 import pytest
-from promo_common.timecode import TimecodeError, format_timecode, iou, overlap, parse_timecode
+
+from promo_finder.domain.timecode import (
+    TimecodeError,
+    format_timecode,
+    iou,
+    overlap,
+    parse_timecode,
+)
 
 
 @pytest.mark.parametrize(

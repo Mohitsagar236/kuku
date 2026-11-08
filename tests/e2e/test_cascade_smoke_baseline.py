@@ -6,21 +6,22 @@ from pathlib import Path
 
 import httpx
 import pytest
-from ingestion_service import load_show, parse_episode_spec
-from promo_common.errors import IngestionError
-from promo_common.llm import LLMRequest, LLMSettings
-from promo_common.llm.providers.anthropic import AnthropicProvider
-from promo_common.llm.providers.gemini import GeminiProvider
-from promo_common.llm.providers.ollama import OllamaProvider
-from promo_common.llm.providers.openai_compat import OpenAICompatProvider
-from promo_finder_cli import pipeline as pl
-from promo_finder_cli.__main__ import main
-from promo_finder_cli.outputs import write_all
-from promo_finder_cli.package import package_outputs
-from promo_finder_cli.pipeline import RunOptions, run_pipeline
-from promo_finder_cli.smoke import smoke_report
-from scoring_service import Scorer, load_scoring_config
 
+from promo_finder.application import pipeline as pl
+from promo_finder.application.models import RunOptions
+from promo_finder.application.pipeline import run_pipeline
+from promo_finder.domain.errors import IngestionError
+from promo_finder.infrastructure.artifacts import write_all
+from promo_finder.infrastructure.llm import LLMRequest, LLMSettings
+from promo_finder.infrastructure.llm.providers.anthropic import AnthropicProvider
+from promo_finder.infrastructure.llm.providers.gemini import GeminiProvider
+from promo_finder.infrastructure.llm.providers.ollama import OllamaProvider
+from promo_finder.infrastructure.llm.providers.openai_compat import OpenAICompatProvider
+from promo_finder.ingestion import load_show, parse_episode_spec
+from promo_finder.interfaces.cli.__main__ import main
+from promo_finder.interfaces.cli.package import package_outputs
+from promo_finder.interfaces.cli.smoke import smoke_report
+from promo_finder.scoring import Scorer, load_scoring_config
 from tests.e2e.helpers import write_show
 from tests.shared import SpyMock, make_llm
 
@@ -156,9 +157,8 @@ def test_scorer_shortlist_hook_marks_stage2(show, cands, scfg) -> None:
 
 # ---- episode-end prior ----------------------------------------------------------------------
 def test_episode_end_weight_is_configurable_and_lower_than_before(cfg, lex) -> None:
-    from candidate_service.context import EpCtx
-    from candidate_service.signals import make_view, score_cliff
-
+    from promo_finder.candidates.context import EpCtx
+    from promo_finder.candidates.signals import make_view, score_cliff
     from tests.candidate.conftest import D, make_episode
 
     base = [(D, i * 4.0, i * 4.0 + 2.5, f"statement number {i} is calm") for i in range(20)]
@@ -255,3 +255,14 @@ def test_package_cli(show_dir: Path, tmp_path: Path, capsys) -> None:
     assert main(["package", "--out", str(tmp_path / "out")]) == 0
     assert "never commit" in capsys.readouterr().out.lower()
     assert main(["package", "--out", str(tmp_path / "empty")]) == 2
+
+
+def test_packaging_ignores_a_newer_incomplete_run(tmp_path: Path) -> None:
+    from promo_finder.interfaces.cli.package import _latest_run
+
+    show = tmp_path / "show"
+    complete = show / "20260101-010000"
+    complete.mkdir(parents=True)
+    (complete / "promos.json").write_text('{"promos": []}')
+    (show / "20260102-010000").mkdir()
+    assert _latest_run(show, False) == complete

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from promo_common.schemas import Beat, BeatType, Episode, Scene, Show
+from typing import Any
+
+from promo_finder.domain.models import Beat, BeatType, Episode, Scene, Show
 
 D, A, S, C, _OTHER = (
     BeatType.DIALOGUE,
@@ -13,7 +15,7 @@ D, A, S, C, _OTHER = (
 )
 
 # (type, start, end, text) or (type, start, end, text, speaker, tags)
-Spec = tuple
+Spec = tuple[Any, ...]
 
 
 def make_episode(number: int, specs: list[Spec], notes: str = "", logline: str = "L") -> Episode:

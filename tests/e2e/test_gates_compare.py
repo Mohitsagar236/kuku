@@ -4,11 +4,12 @@ import json
 from pathlib import Path
 
 import pytest
-from promo_common.llm import LLMSettings
-from promo_finder_cli.__main__ import main
-from promo_finder_cli.outputs import write_all
-from promo_finder_cli.pipeline import RunOptions, run_pipeline
 
+from promo_finder.application.models import RunOptions
+from promo_finder.application.pipeline import run_pipeline
+from promo_finder.infrastructure.artifacts import write_all
+from promo_finder.infrastructure.llm import LLMSettings
+from promo_finder.interfaces.cli.__main__ import main
 from tests.e2e.helpers import write_show
 from tests.shared import SpyMock, make_llm
 
@@ -125,7 +126,15 @@ def test_unknown_provider_is_a_clean_error_not_a_traceback(
 
 
 def test_runs_in_the_same_second_never_share_a_folder(tmp_path: Path) -> None:
-    from promo_finder_cli.pipeline import _reserve_dir
+    from promo_finder.application.pipeline import _reserve_dir
 
     dirs = [_reserve_dir(tmp_path, "20260101-000000") for _ in range(3)]
     assert [d.name for d in dirs] == ["20260101-000000", "20260101-000000-2", "20260101-000000-3"]
+
+
+def test_compare_corrupt_summary_is_a_clean_cli_error(tmp_path, capsys) -> None:
+    run = tmp_path / "broken"
+    run.mkdir()
+    (run / "smoke_summary.json").write_text("{not json")
+    assert main(["compare", str(run), str(run)]) == 2
+    assert "error: invalid input or artifact format" in capsys.readouterr().err

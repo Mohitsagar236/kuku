@@ -7,9 +7,9 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from promo_common.llm import LLMSettings
-from promo_finder_cli.doctor import estimate_calls, run_doctor
 
+from promo_finder.infrastructure.llm import LLMSettings
+from promo_finder.interfaces.cli.doctor import estimate_calls, run_doctor
 from tests.e2e.helpers import write_show
 from tests.llm.test_openai_compatible import Stub
 
@@ -130,7 +130,7 @@ def test_call_estimate_mirrors_the_scorer_batching() -> None:
 
 
 def test_host_helper_never_echoes_paths_or_tokens() -> None:
-    from promo_finder_cli.doctor import _host, _secret
+    from promo_finder.interfaces.cli.doctor import _host, _secret
 
     assert (
         _host("https://gw.example.com:8443/v1/secret-path?token=abc")

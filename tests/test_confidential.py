@@ -6,7 +6,8 @@ import os
 from pathlib import Path
 
 import pytest
-from promo_common.confidential import (
+
+from promo_finder.infrastructure.confidential import (
     build_shingles,
     scan_quotes,
     scan_repo,
@@ -74,7 +75,7 @@ def test_real_repo_contains_no_script_text() -> None:
     src = next((c for c in candidates if c and Path(c).is_dir()), None)
     if src is None:
         pytest.skip("confidential input not present on this machine")
-    from ingestion_service import load_show
+    from promo_finder.ingestion import load_show
 
     show = load_show(src)
     texts = [b.text for e in show.episodes for b in e.beats]

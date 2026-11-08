@@ -3,14 +3,14 @@ from __future__ import annotations
 import math
 
 import pytest
-from promo_common.cuts import CONTENT_TYPES
-from promo_common.llm.cache import MemoryCache
-from promo_common.llm.errors import DailyQuotaExhausted
-from promo_common.schemas import BeatType
-from scoring_service import Scorer, rerank
-from scoring_service.ids import IdMap, build_view
-from scoring_service.text import make_redactor
 
+from promo_finder.domain.cuts import CONTENT_TYPES
+from promo_finder.domain.models import BeatType
+from promo_finder.infrastructure.llm.cache import MemoryCache
+from promo_finder.infrastructure.llm.errors import DailyQuotaExhausted
+from promo_finder.scoring import Scorer, rerank
+from promo_finder.scoring.ids import IdMap, build_view
+from promo_finder.scoring.text import make_redactor
 from tests.shared import SpyMock, make_llm
 
 
