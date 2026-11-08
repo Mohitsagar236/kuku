@@ -17,6 +17,7 @@ from promo_finder.infrastructure.logging import request_id_var
 
 log = logging.getLogger(__name__)
 MAX_BODY = 8192
+UPLOAD_LIMITS = {"/api/analyze": 12_000_000}  # screenplay uploads (JSON text), per path
 CSP = (
     "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
     "img-src 'self' data:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'"
@@ -134,7 +135,8 @@ class LocalSecurityMiddleware:
                 except ValueError:
                     await reject(411, "Content-Length required")
                     return
-                if not 0 <= size <= MAX_BODY:
+                limit = UPLOAD_LIMITS.get(scope["path"], MAX_BODY)
+                if not 0 <= size <= limit:
                     await reject(413, "request body too large")
                     return
                 body = bytearray()
@@ -143,7 +145,7 @@ class LocalSecurityMiddleware:
                     if message["type"] == "http.disconnect":
                         return
                     body.extend(message.get("body", b""))
-                    if len(body) > MAX_BODY:
+                    if len(body) > limit:
                         await reject(413, "request body too large")
                         return
                     if not message.get("more_body", False):

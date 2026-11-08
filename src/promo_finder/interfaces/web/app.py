@@ -13,9 +13,10 @@ from fastapi.responses import FileResponse, JSONResponse
 from starlette.exceptions import HTTPException
 
 from promo_finder import __version__
+from promo_finder.application.analysis import AnalysisError, AnalysisService
 from promo_finder.application.editor import EditorError, EditorService
 from promo_finder.infrastructure.runs import DOWNLOADS, RunRepository
-from promo_finder.interfaces.web.schemas import NudgeRequest, ReviewRequest
+from promo_finder.interfaces.web.schemas import AnalyzeRequest, NudgeRequest, ReviewRequest
 from promo_finder.interfaces.web.security import LocalSecurityMiddleware
 
 log = logging.getLogger(__name__)
@@ -38,8 +39,12 @@ def create_app(outputs: str | Path = "outputs", static_dir: Path | None = None) 
         outputs = seed_demo(Path(os.environ.get("PF_DEMO_ROOT", "/tmp/promo-finder-demo")))
     runs = RunRepository(Path(outputs))
     editor = EditorService(runs)
+    analysis_on = os.environ.get("PF_ANALYZE", "true").lower() != "false"
+    analysis = AnalysisService(Path(outputs), public=demo_mode) if analysis_on else None
+    if analysis is not None:
+        analysis.purge()
     static = (static_dir or WEB_ROOT).resolve()
-    app.state.runs, app.state.editor = runs, editor
+    app.state.runs, app.state.editor, app.state.analysis = runs, editor, analysis
     hosts = frozenset(
         h.strip().lower() for h in os.environ.get("PF_ALLOWED_HOSTS", "").split(",") if h.strip()
     )
@@ -53,6 +58,10 @@ def create_app(outputs: str | Path = "outputs", static_dir: Path | None = None) 
     @app.exception_handler(EditorError)
     async def editor_error(request: Request, exc: EditorError) -> JSONResponse:
         return JSONResponse({"error": exc.message, **exc.extra}, status_code=exc.code)
+
+    @app.exception_handler(AnalysisError)
+    async def analysis_error(request: Request, exc: AnalysisError) -> JSONResponse:
+        return JSONResponse({"error": exc.message}, status_code=exc.code)
 
     @app.exception_handler(RequestValidationError)
     async def invalid_request(request: Request, exc: RequestValidationError) -> JSONResponse:
@@ -87,8 +96,39 @@ def create_app(outputs: str | Path = "outputs", static_dir: Path | None = None) 
         )
 
     @app.get("/api/runs")
-    def list_runs() -> list[dict[str, Any]]:
-        return runs.list_runs()
+    def list_runs(extra: str = "") -> list[dict[str, Any]]:
+        return runs.list_runs(extra=extra)
+
+    @app.get("/api/capabilities")
+    def capabilities() -> dict[str, Any]:
+        from promo_finder.application import analysis as limits
+
+        return {
+            "analyze": analysis is not None,
+            "public": demo_mode,
+            "needs_key_for_model": demo_mode,
+            "limits": {"files": limits.MAX_FILES, "file_kb": limits.MAX_FILE_BYTES // 1000,
+                       "total_mb": limits.MAX_TOTAL_BYTES // 1_000_000},
+            "retention_minutes": int((analysis.ttl_s if analysis else 0) // 60),
+        }  # fmt: skip
+
+    @app.post("/api/analyze")
+    def analyze(body: AnalyzeRequest) -> JSONResponse:
+        if analysis is None:
+            raise EditorError(404, "uploads are disabled on this server")
+        token = analysis.submit(
+            [(f.name, f.text) for f in body.files],
+            mode=body.mode, title=body.title, provider=body.provider,
+            model=body.model, api_key=body.api_key,
+        )  # fmt: skip
+        return JSONResponse({"job": token}, status_code=202)
+
+    @app.get("/api/analyze/status")
+    def analyze_status(job: str = "") -> dict[str, Any]:
+        status = analysis.status(job) if analysis is not None else None
+        if status is None:
+            raise EditorError(404, "job not found (it may have expired)")
+        return status
 
     @app.get("/api/run")
     def load_run(id: str = "") -> dict[str, Any]:

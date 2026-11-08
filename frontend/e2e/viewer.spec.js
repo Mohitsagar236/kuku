@@ -245,3 +245,62 @@ test("phone layout keeps the review stats in one compact row above the shortlist
   await page.setViewportSize({ width: 1280, height: 800 }); // desktop keeps the full tiles
   expect((await bar.boundingBox()).height).toBeGreaterThan(90);
 });
+
+// --- upload and analyse your own screenplay ---------------------------------------------
+
+function ts(t) { return `${String(Math.floor(t / 60)).padStart(2, "0")}:${(t % 60).toFixed(2).padStart(5, "0")}`; }
+function screenplay(n, dur = 110) {
+  const L = [`EPISODE NUMBER: Episode ${n}`, `EPISODE LOGLINE: Invented episode ${n}.`, "CONTINUITY NOTES: Continues.", "", "--- SCRIPT START ---", ""];
+  let t = 0, i = 0;
+  for (const sc of [1, 2]) {
+    L.push(`SCENE 0${sc}`, `Scene heading: INT. HALL ${sc} – DAY`, `Scene start: ${ts((sc - 1) * dur / 2)}`, `Scene end: ${ts(sc * dur / 2)}`, "", "Actions and dialogue:", "");
+    while (t < sc * dur / 2 - 4) {
+      const who = ["ANA (Furious)", "BEN (Cold)", "CAL (Pleading)"][i % 3];
+      L.push("**CAMERA:**", `Start: (${ts(t)}) | End: (${ts(t + 3.5)})`, "Close-up on the speaker.", "");
+      L.push(`**${who}:**`, `Start: (${ts(t + 0.2)}) | End: (${ts(t + 2.7)})`, `"Line ${i} of episode ${n} about the vault key${i % 4 === 0 ? " You lied to me!" : ""}"`, "");
+      if (i % 5 === 4) L.push("**ACTION:**", `Start: (${ts(t + 2.8)}) | End: (${ts(t + 3.4)})`, "He slaps her across the face.", "");
+      t += 3.5; i += 1;
+    }
+  }
+  L.push("**CAL (Shocked):**", `Start: (${ts(dur - 6)}) | End: (${ts(dur - 3.5)})`, '"Who are you?"', "",
+    "**CAMERA:**", `Start: (${ts(dur - 3.4)}) | End: (${ts(dur)})`, "Hold, then an abrupt cut to black.", "", "--- SCRIPT END ---");
+  return L.join("\n");
+}
+const upload = (names = [1, 2, 3]) => names.map((n) => ({ name: `episode-00${n}.txt`, mimeType: "text/plain", buffer: Buffer.from(screenplay(n)) }));
+
+test("a visitor can upload episode files and get a ranked, reviewable result", async ({ page }) => {
+  await open(page);
+  await page.getByRole("button", { name: "Analyze your screenplay" }).click();
+  await expect(page.getByRole("heading", { name: "Analyze your own screenplay" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Find promos" })).toBeDisabled(); // nothing chosen yet
+  await page.getByLabel("Episode files").setInputFiles(upload());
+  await page.getByLabel("Name").fill("My invented pilot");
+  await page.getByRole("button", { name: "Find promos" }).click();
+  await expect(page.getByRole("heading", { name: "My invented pilot" })).toBeVisible({ timeout: 60000 });
+  await expect(page.getByText("Rules-only ranking")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Ranked promos" }).locator('[aria-current="true"]')).toBeVisible();
+  expect(await hashOf(page)).toContain("run=upload-");
+  await page.getByRole("button", { name: "Approve", exact: true }).click(); // the editor works on it
+  await expect(page.getByRole("button", { name: "Approve", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.reload(); // the unlisted link survives a reload
+  await expect(page.getByRole("heading", { name: "My invented pilot" })).toBeVisible();
+});
+
+test("model mode asks for a key only where the server requires it and never echoes it", async ({ page }) => {
+  await open(page);
+  await page.getByRole("button", { name: "Analyze your screenplay" }).click();
+  await page.getByLabel("Episode files").setInputFiles(upload([1]));
+  await page.getByText("With an AI model").click();
+  const key = page.getByLabel("API key");
+  await expect(key).toHaveAttribute("type", "password");
+  await expect(page.getByText("never stored, logged or shown again")).toBeVisible();
+});
+
+test("a file that is not a screenplay shows a readable error and the form stays usable", async ({ page }) => {
+  await open(page);
+  await page.getByRole("button", { name: "Analyze your screenplay" }).click();
+  await page.getByLabel("Episode files").setInputFiles([{ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("just prose, no timestamps") }]);
+  await page.getByRole("button", { name: "Find promos" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "no parseable episodes" })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("button", { name: "Find promos" })).toBeEnabled();
+});

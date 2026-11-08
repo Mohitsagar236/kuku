@@ -35,3 +35,21 @@ class NudgeRequest(BaseModel):
         elif self.segment is None or self.edge is None or (self.delta is None) == (self.to is None):
             raise ValueError("give segment, edge and exactly one of delta or to")
         return self
+
+
+class UploadedFile(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    name: str = Field(min_length=1, max_length=200)
+    text: str = Field(max_length=600_000)
+
+
+class AnalyzeRequest(BaseModel):
+    """One screenplay upload. ``api_key`` is used for this job only and is never stored."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    files: list[UploadedFile] = Field(min_length=1, max_length=60)
+    mode: Literal["rules", "model"] = "rules"
+    title: str = Field(default="", max_length=120)
+    provider: str | None = Field(default=None, max_length=40)
+    model: str | None = Field(default=None, max_length=80)
+    api_key: str | None = Field(default=None, max_length=400, repr=False)

@@ -342,3 +342,16 @@ th { background:var(--cream); font:500 10px var(--mono); color:var(--mute); text
   .reviewbar .metric-label { display:block; font-size:7.5px; line-height:1.15; letter-spacing:.02em; white-space:normal; overflow-wrap:anywhere; }
 }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto !important; transition:none !important; animation:none !important; } }
+
+/* In-app analysis panel */
+.analyze { width:calc(100% - 56px); max-width:1624px; margin:0 auto 20px; padding:24px 28px; }
+.analyze-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.analyze h2 { margin:0; font:500 24px/1.2 var(--serif); }
+.analyze-form { display:grid; gap:12px; max-width:640px; margin-top:12px; }
+.analyze .modes { border:1px solid var(--line); border-radius:14px; padding:10px 14px; display:grid; gap:6px; }
+.analyze .modes legend { padding:0 6px; font-size:12px; color:var(--muted); }
+.analyze .keybox { display:grid; gap:10px; padding:12px 14px; background:var(--cream); border-radius:14px; }
+.analyze input[type=text],.analyze input[type=password],.analyze select { width:100%; padding:9px 12px; border:1px solid var(--line-2); border-radius:10px; background:var(--paper); font:inherit; }
+.btn.primary { color:#fff; background:var(--ink); }
+.btn.primary:disabled { opacity:.5; cursor:not-allowed; }
+@media(max-width:767px) { .analyze { width:calc(100% - 36px); padding:18px; } }

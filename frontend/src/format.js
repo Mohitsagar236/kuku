@@ -66,3 +66,6 @@ export function demoScoring(run) {
   const day = run.generated_at ? run.generated_at.slice(0, 10) : "an unknown date";
   return `Scored by ${model} on ${day}`;
 }
+
+/** True for runs ranked by rules alone: "rules-only (no LLM)" (baseline) or "none/rules-only". */
+export const isRulesOnly = (model) => /^(rules-only|none\/)/.test(model || "");

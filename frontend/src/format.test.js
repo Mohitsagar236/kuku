@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { demoScoring, offsetInPromo, tsToSec } from "./format.js";
+import { demoScoring, isRulesOnly, offsetInPromo, tsToSec } from "./format.js";
 
 test("stitched hook offsets include prior segments", () => {
   const segments = [
@@ -25,4 +25,11 @@ test("demo banner names the real model and date, and says simulated only for the
   assert.equal(demoScoring({ model: "mock/render-demo" }), "simulated scores");
   assert.equal(demoScoring({ model: "gemini/x" }), "Scored by gemini/x on an unknown date");
   assert.equal(demoScoring(null), "simulated scores");
+});
+
+test("rules-only runs are recognised in both spellings, real models are not", () => {
+  assert.equal(isRulesOnly("rules-only (no LLM)"), true);
+  assert.equal(isRulesOnly("none/rules-only"), true);
+  assert.equal(isRulesOnly("gemini/gemini-3.5-flash-lite"), false);
+  assert.equal(isRulesOnly(null), false);
 });

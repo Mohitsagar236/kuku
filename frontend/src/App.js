@@ -2,12 +2,13 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { html } from "./ui.js";
 import { getJSON, sendJSON } from "./api.js";
 import { readHash, writeHash } from "./navigation.js";
-import { KIND, when, variantLabel, pct, demoScoring } from "./format.js";
+import { KIND, when, variantLabel, pct, demoScoring, isRulesOnly } from "./format.js";
 import { Markdown } from "./Markdown.js";
 import { CopyButton } from "./components/CopyButton.js";
 import { State } from "./components/State.js";
 import { Detail } from "./components/Detail.js";
 import { PromoList } from "./components/PromoList.js";
+import { Analyze } from "./components/Analyze.js";
 export function App() {
   const init = useRef(readHash()).current;
   const [runs, setRuns] = useState(null);
@@ -27,6 +28,7 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState({});
   const [nudgeErr, setNudgeErr] = useState(null);
+  const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const wantPromo = useRef(init.p);
   const detailRef = useRef(null);
   const activeRun = useRef(runId);
@@ -38,7 +40,8 @@ export function App() {
   useEffect(() => {
     const ac = new AbortController();
     setRunsErr("");
-    getJSON("/api/runs", ac.signal)
+    const own = activeRun.current.startsWith("upload-") ? `?extra=${encodeURIComponent(activeRun.current)}` : "";
+    getJSON(`/api/runs${own}`, ac.signal)
       .then((r) => {
         setRuns(r);
         setRunId((cur) => (cur && r.some((x) => x.id === cur) ? cur : (r.find((x) => x.kind === "full" && !x.partial) || r[0] || {}).id || ""));
@@ -239,10 +242,13 @@ export function App() {
     <//>`;
   if (!runs) return html`<${State}>Loading runs…<//>`;
   if (!runs.length)
-    return html`<${State} title="No results yet.">
-      <p>Run the tool on a show folder first, then reload this page:</p>
-      <pre>make run-rules SHOW_DIR="path/to/show"   # free, no API key\nmake run SHOW_DIR="path/to/show"         # with the LLM in .env</pre>
-    <//>`;
+    return html`<div>
+      <${State} title="No results yet.">
+        <p>Analyze a screenplay right here, or run the tool on a show folder and reload:</p>
+        <pre>make run-rules SHOW_DIR="path/to/show"   # free, no API key\nmake run SHOW_DIR="path/to/show"         # with the LLM in .env</pre>
+      <//>
+      <${Analyze} onDone=${(r) => { setRunId(r.id); setReload((n) => n + 1); }} />
+    </div>`;
 
   const shows = [...new Set(runs.map((r) => r.show))];
   const dl = (name) => `/api/file?id=${encodeURIComponent(runId)}&name=${name}`;
@@ -276,6 +282,7 @@ export function App() {
         <button type="button" role="tab" aria-selected=${tab === "promos"} class=${tab === "promos" ? "on" : ""} onClick=${() => setTab("promos")}>Promos</button>
         <button type="button" role="tab" aria-selected=${tab === "report"} class=${tab === "report" ? "on" : ""} onClick=${() => setTab("report")}>Quality report</button>
       </div>
+      <button type="button" class="btn small analyze-open" onClick=${() => setAnalyzeOpen((v) => !v)} aria-expanded=${analyzeOpen}>Analyze your screenplay</button>
       ${run && run.downloads && run.downloads.length
         ? html`<div class="downloads">${run.downloads.map((n) => html`<a key=${n} class="btn small" href=${dl(n)} download>${n.endsWith(".csv") ? "Download CSV" : "Download ranking"}</a>`)}</div>`
         : null}
@@ -284,9 +291,19 @@ export function App() {
 
     <div class="workspace-heading"><div><div class="eyebrow"><span class="hero-line" aria-hidden="true"></span> YOUR NEXT GREAT PROMO STARTS HERE</div><h2>${cur?.show || "Your shortlist"}</h2><p>Review the shortlist. Shape the next standout promo.</p></div><div class="hero-aside"><div class="hero-format" aria-hidden="true"><span>20–60</span><small>SECONDS. ALL IMPACT.</small></div><div class="run-meta"><span class="live-dot"></span>${KIND[cur?.kind] || "Analysis"}<span class="meta-divider">/</span>${promos.length} candidates</div></div></div>
 
+    ${analyzeOpen
+      ? html`<${Analyze} onClose=${() => setAnalyzeOpen(false)} onDone=${(r) => {
+          setAnalyzeOpen(false); setVariant("main"); setTab("promos"); wantPromo.current = "";
+          setRunId(r.id); setReload((n) => n + 1);
+        }} />`
+      : null}
+
     ${isDemo ? html`<div class="banner info demo-notice" role="note"><strong>Interactive demo</strong> · Fictional sample story. ${demoScoring(cur)}. Reviews are shared and reset when the service restarts.</div>` : null}
 
-    ${cur && cur.partial
+    ${cur && isRulesOnly(cur.model)
+      ? html`<div class="banner info" role="note">Rules-only ranking: promos are ranked by timing and keyword rules; no AI model judged them. Run it with a model for better hook, cliffhanger and clarity judgement.</div>`
+      : null}
+    ${cur && cur.partial && !isRulesOnly(cur.model)
       ? html`<div class="banner" role="note">Partial run: LLM scoring stopped early (no key, quota or budget), so some promos are ranked on rule scores only.</div>`
       : null}
     ${variant !== "main" && run && run.variants[variant]

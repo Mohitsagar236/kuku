@@ -13,6 +13,9 @@ from promo_finder.domain.models import Promo
 
 log = logging.getLogger(__name__)
 DOWNLOADS = {"promos.csv": "text/csv", "ranking.md": "text/markdown"}
+PRIVATE_PREFIX = (
+    "upload-"  # runs from the in-app upload: never listed, reachable only by their link
+)
 
 
 def _kind(run_dir: Path) -> str:
@@ -45,30 +48,42 @@ class RunRepository:
     def __init__(self, outputs: Path) -> None:
         self.outputs = outputs.resolve()
 
-    def list_runs(self, outputs: Path | None = None) -> list[dict[str, Any]]:
+    def _describe(self, f: Path, outputs: Path) -> dict[str, Any] | None:
+        d = f.parent
+        if f.is_symlink() or outputs.resolve() not in f.resolve().parents:
+            return None
+        try:
+            meta = _load_artifact(f)
+            promos = meta["promos"]
+        except (OSError, ValueError, AttributeError):
+            log.warning("skipping unreadable run %s", d.relative_to(outputs).as_posix())
+            return None
+        return {
+            "id": d.relative_to(outputs).as_posix(),
+            "show": meta.get("show") or d.parent.name,
+            "kind": _kind(d),
+            "generated_at": meta.get("generated_at"),
+            "model": meta.get("model"),
+            "partial": bool(meta.get("partial")),
+            "count": len(promos),
+        }
+
+    def describe(self, run_id: str) -> dict[str, Any] | None:
+        """The listing entry for one run id (used for unlisted upload runs)."""
+        d = self.run_dir(run_id)
+        return self._describe(d / "promos.json", self.outputs) if d else None
+
+    def list_runs(self, outputs: Path | None = None, extra: str = "") -> list[dict[str, Any]]:
+        """Listed runs; upload runs stay unlisted except the caller's own ``extra`` link."""
         outputs = outputs or self.outputs
         runs = []
         for f in outputs.glob("*/*/promos.json"):
-            d = f.parent
-            if f.is_symlink() or outputs.resolve() not in f.resolve().parents:
+            if f.parent.parent.name.startswith(PRIVATE_PREFIX):
                 continue
-            try:
-                meta = _load_artifact(f)
-                promos = meta["promos"]
-            except (OSError, ValueError, AttributeError):
-                log.warning("skipping unreadable run %s", d.relative_to(outputs).as_posix())
-                continue
-            runs.append(
-                {
-                    "id": d.relative_to(outputs).as_posix(),
-                    "show": meta.get("show") or d.parent.name,
-                    "kind": _kind(d),
-                    "generated_at": meta.get("generated_at"),
-                    "model": meta.get("model"),
-                    "partial": bool(meta.get("partial")),
-                    "count": len(promos),
-                }
-            )
+            if (entry := self._describe(f, outputs)) is not None:
+                runs.append(entry)
+        if extra.startswith(PRIVATE_PREFIX) and (entry := self.describe(extra)) is not None:
+            runs.append(entry)
         runs.sort(key=lambda r: r["generated_at"] or "", reverse=True)
         return runs
 
