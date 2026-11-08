@@ -4,8 +4,8 @@ Privacy model (the pack is confidential, the viewer may be public):
 * every upload gets an unguessable token; its run lives under ``upload-<token>`` and is never
   listed, so other visitors cannot browse it;
 * uploads and results are deleted after ``ttl_s`` (default 1 hour), also after a restart;
-* nothing is written to the shared response cache, and API keys exist only in memory for the job
-  that was given them: never stored, logged or returned.
+* nothing is written to the shared response cache. Model runs use the server's own key from its
+  environment (.env / hosting env vars). A key is never accepted from, or sent to, the browser.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ import threading
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +43,7 @@ KEY_FIELD = {
     "anthropic": "anthropic_api_key",
     "groq": "groq_api_key",
 }
+DEFAULT_MODEL_JOBS_PER_DAY = 3  # public servers: a free key has ~200 requests/day; one show ~70
 SAFE_NAME = re.compile(r"[^A-Za-z0-9._ -]+")
 
 
@@ -64,7 +65,6 @@ class Job:
     run_id: str = ""
     error: str = ""
     created: float = 0.0
-    secret: str = field(default="", repr=False)  # the caller's API key, if any
 
 
 class AnalysisService:
@@ -75,6 +75,7 @@ class AnalysisService:
         public: bool = False,
         ttl_s: float = 3600.0,
         max_waiting: int = 2,
+        max_model_jobs_per_day: int | None = None,
         settings_factory: Callable[[], LLMSettings] | None = None,
         llm_factory: Callable[[LLMSettings], ManagedLLM] | None = None,
         clock: Callable[[], float] = time.time,
@@ -84,6 +85,13 @@ class AnalysisService:
         self._settings_factory = settings_factory or LLMSettings
         self._llm_factory = llm_factory  # tests inject a mock; production builds from settings
         self._clock = clock
+        # None = default: capped on public servers, unlimited on a local install.
+        self.max_model_jobs_per_day = (
+            max_model_jobs_per_day
+            if max_model_jobs_per_day is not None
+            else (DEFAULT_MODEL_JOBS_PER_DAY if public else 0)
+        )
+        self._model_jobs: dict[str, int] = {}
         self._jobs: dict[str, Job] = {}
         self._lock = threading.Lock()
         self._pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="analysis")
@@ -126,35 +134,54 @@ class AnalysisService:
         used.add(name.lower())
         return name[:150]
 
-    def _settings(
-        self, mode: str, provider: str | None, model: str | None, key: str | None
-    ) -> LLMSettings:
+    def model_status(self) -> dict[str, Any]:
+        """Whether a model run can start here, and with which model (never the key)."""
+        try:
+            settings = self._settings_factory()
+        except Exception:  # an unreadable .env must not take the whole UI down
+            return {
+                "available": self._llm_factory is not None,
+                "name": "",
+                "reason": "The server's model settings are invalid.",
+            }
+        if self._llm_factory is None:  # production: a real provider and its key are required
+            if settings.provider in {"none", "mock"}:
+                reason = "No model is configured on this server (set LLM_PROVIDER and its API key)."
+                return {"available": False, "name": "", "reason": reason}
+            field_name = KEY_FIELD.get(settings.provider)
+            if field_name and not getattr(settings, field_name, None):
+                reason = f"No {settings.provider} API key is set on this server."
+                return {"available": False, "name": "", "reason": reason}
+        from promo_finder.infrastructure.llm.settings import DEFAULT_MODELS
+
+        name = f"{settings.provider}/{settings.model or DEFAULT_MODELS.get(settings.provider, '')}"
+        return {"available": True, "name": name, "reason": ""}
+
+    def _settings(self, mode: str) -> LLMSettings:
         if mode == "rules":
             return LLMSettings(_env_file=None, provider="none", model="rules-only")
-        if key:
-            prov = (provider or "gemini").lower()
-            if prov not in KEY_FIELD:
-                raise AnalysisError(400, f"provider must be one of {sorted(KEY_FIELD)}")
-            from promo_finder.infrastructure.llm.settings import DEFAULT_MODELS
-
-            base = LLMSettings(
-                _env_file=None, provider=prov, model=(model or DEFAULT_MODELS[prov]),
-                budget_calls=MODEL_CALL_BUDGET, rpd=0,
-            )  # fmt: skip
-            return base.model_copy(update={KEY_FIELD[prov]: key})
-        if self.public:
-            raise AnalysisError(
-                400, "Paste your own API key to use a model here, or choose Rules only (no key)."
-            )
-        settings = self._settings_factory()  # local viewer: the key already in .env
-        if settings.provider in {"none", "mock"} and self._llm_factory is None:
-            raise AnalysisError(
-                400,
-                "No model is configured (set LLM_PROVIDER and a key in .env), or use Rules only.",
-            )
+        status = self.model_status()
+        if not status["available"]:
+            raise AnalysisError(503, status["reason"] + " Use Rules only instead.")
+        settings = self._settings_factory()  # the server's own key, from its environment
         if settings.budget_calls is None:
             settings = settings.model_copy(update={"budget_calls": MODEL_CALL_BUDGET})
         return settings
+
+    def _check_daily_model_cap(self) -> None:
+        cap = self.max_model_jobs_per_day
+        if cap <= 0:
+            return
+        today = time.strftime("%Y-%m-%d", time.gmtime(self._clock()))
+        with self._lock:
+            used = self._model_jobs.get(today, 0)
+            if used >= cap:
+                raise AnalysisError(
+                    429,
+                    f"The daily limit of {cap} AI analyses on this server is used up. "
+                    "Use Rules only, or try again tomorrow.",
+                )
+            self._model_jobs = {today: used + 1}
 
     def submit(
         self,
@@ -162,9 +189,6 @@ class AnalysisService:
         *,
         mode: str = "rules",
         title: str = "",
-        provider: str | None = None,
-        model: str | None = None,
-        api_key: str | None = None,
     ) -> str:
         self.purge()
         if mode not in {"rules", "model"}:
@@ -189,16 +213,17 @@ class AnalysisService:
             cleaned.append((name, text))
         if total > MAX_TOTAL_BYTES:
             raise AnalysisError(413, f"Upload too large (limit {MAX_TOTAL_BYTES // 1_000_000} MB).")
-        settings = self._settings(mode, provider, model, (api_key or "").strip() or None)
+        settings = self._settings(mode)
         with self._lock:
             busy = sum(j.state in {"queued", "running"} for j in self._jobs.values())
             if busy > self.max_waiting:
                 raise AnalysisError(429, "The analyser is busy; try again in a minute.")
+        if mode == "model":
+            self._check_daily_model_cap()  # counted only once the job will really start
+        with self._lock:
             token = secrets.token_hex(16)
             clean_title = " ".join(title.split())[:MAX_TITLE] or "Your screenplay"
-            job = Job(
-                token, mode, clean_title, created=self._clock(), secret=(api_key or "").strip()
-            )
+            job = Job(token, mode, clean_title, created=self._clock())
             self._jobs[token] = job
         folder = self._uploads() / token / f"{PRIVATE_PREFIX}{token}"
         folder.mkdir(parents=True)
@@ -208,14 +233,18 @@ class AnalysisService:
         return token
 
     # ------------------------------------------------------------------ run
-    def _scrub(self, message: str, job: Job) -> str:
-        if job.secret:
-            message = message.replace(job.secret, "***")
+    @staticmethod
+    def _scrub(message: str, settings: LLMSettings) -> str:
+        """Defence in depth: a provider error must never carry the server's key to a browser."""
+        keys = [getattr(settings, f, None) for f in KEY_FIELD.values()] + [settings.api_key]
+        for k in keys:
+            if k and len(k) >= 6:
+                message = message.replace(k, "***")
         return message[:300]
 
     def _run(self, job: Job, folder: Path, settings: LLMSettings) -> None:
         def progress(message: str) -> None:
-            job.stage = self._scrub(message.replace("[run] ", ""), job)
+            job.stage = self._scrub(message.replace("[run] ", ""), settings)
 
         job.state, job.stage = "running", "Reading the screenplay"
         result = None
@@ -233,17 +262,16 @@ class AnalysisService:
             job.run_id = out.relative_to(self.outputs).as_posix()
             job.state, job.stage = "done", "Done"
         except IngestionError as e:
-            job.state, job.error = "error", self._scrub(str(e), job)
+            job.state, job.error = "error", self._scrub(str(e), settings)
         except Exception as e:  # never leak provider details or the key to the browser
             log.error("analysis_failed", extra={"exception_type": type(e).__name__})
             job.state = "error"
             job.error = self._scrub(
                 f"The analysis failed ({type(e).__name__}). Check the screenplay format and, "
-                "for a model run, your API key and quota.",
-                job,
+                "for a model run, the server's API key and quota.",
+                settings,
             )
         finally:
-            job.secret = ""  # the key is not needed (or kept) any longer
             if result is not None:
                 with contextlib.suppress(Exception):  # best effort
                     result.llm.client.close()

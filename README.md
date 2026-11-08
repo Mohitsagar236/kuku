@@ -29,7 +29,7 @@ make run SHOW_DIR="$SHOW"                 # full analysis
 make ui                                   # http://127.0.0.1:8765
 ```
 
-**Try your own screenplay, no command line.** In the viewer, press *Analyze your screenplay*, choose the episode `.txt` files of one show (same timestamped format as the input pack) and pick *Rules only* (free, no key, seconds: the full 50-episode pack takes about 8 s) or *With an AI model* (minutes; on a local install it uses the key in `.env`, on the public demo you paste your own key, which is used for that one analysis and never stored or logged). Each upload becomes a private, unlisted run, reachable only by its link, with the full editor, report and CSV, and is deleted after one hour. Limits: 60 files, 400 KB per file, 8 MB in total, one analysis at a time. Set `PF_ANALYZE=false` to switch uploads off. Measured on the fictional demo show with Gemini: 12 live calls, 64 s.
+**Try your own screenplay, no command line.** In the viewer, press *Analyze your screenplay*, choose the episode `.txt` files of one show (same timestamped format as the input pack) and pick *Rules only* (free, seconds: the full 50-episode pack takes about 8 s) or *With an AI model* (minutes). The model run uses the server's own key from its environment (`.env` locally, `GEMINI_API_KEY` or the provider's key as a host environment variable when deployed); there is no key field in the browser, and the key is never sent to or shown in the page. If no key is configured the option is disabled and says why. Each upload becomes a private, unlisted run, reachable only by its link, with the full editor, report and CSV, and is deleted after one hour. Limits: 60 files, 400 KB per file, 8 MB in total, one analysis at a time; a public deployment also caps AI analyses per day (`PF_MODEL_JOBS_PER_DAY`, default 3, because a free key allows about 200 requests a day) while Rules only stays unlimited. `PF_ANALYZE=false` switches uploads off. Measured on the fictional demo show with Gemini: 12 live calls, about one minute.
 
 The viewer browses runs and robustness variants, downloads CSV/cut lists, displays quality reports, saves editor verdicts and suggests valid cut adjustments. It needs no browser internet connection after installation. Arrow keys or j/k move through promos. Review data lives in `outputs/<show>/editor_feedback.yaml`; refresh report metrics with `make feedback RUN=outputs/<show>/<run>`.
 
@@ -94,10 +94,12 @@ byte-for-byte copies and SHA-256 checksums. It contains confidential derived tex
 
 ## Free Render demo
 
-The root `render.yaml` deploys a **free synthetic demo**, with no paid disk and no API keys.
-Create a Render Blueprint from this repository. The Blueprint sets `PF_DEMO_MODE=true`
-and derives the allowed hostname from Render automatically. Startup seeds a fictional
-six-episode story with deterministic mock scores. The editor, review notes, cut nudges,
+The root `render.yaml` deploys a **free demo** with no paid disk. Create a Render Blueprint
+from this repository, then set the secret `GEMINI_API_KEY` in the Render dashboard (it is never
+in the repo or sent to browsers). The Blueprint sets `PF_DEMO_MODE=true` and derives the allowed
+hostname from Render automatically. Startup installs a fictional six-episode story whose scores
+come from real Gemini output generated once offline (`scripts/build_demo_data.py`; the banner
+shows the model and date). Visitors can also upload their own screenplay (see above). The editor, review notes, cut nudges,
 variants and downloads work against isolated demo data. Shared reviews reset when the
 free instance restarts or sleeps; the UI labels this explicitly.
 

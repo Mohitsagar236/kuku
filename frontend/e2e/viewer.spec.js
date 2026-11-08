@@ -286,14 +286,32 @@ test("a visitor can upload episode files and get a ranked, reviewable result", a
   await expect(page.getByRole("heading", { name: "My invented pilot" })).toBeVisible();
 });
 
-test("model mode asks for a key only where the server requires it and never echoes it", async ({ page }) => {
+test("there is no API key field; the AI option explains itself when the server has no model", async ({ page }) => {
   await open(page);
   await page.getByRole("button", { name: "Analyze your screenplay" }).click();
+  await expect(page.getByLabel("API key")).toHaveCount(0);
+  await expect(page.locator('input[type="password"]')).toHaveCount(0);
+  await expect(page.getByLabel("Provider")).toHaveCount(0);
+  const model = page.getByRole("radio", { name: /With an AI model/ });
+  await expect(model).toBeDisabled(); // the test server has no model configured
+  await expect(page.getByRole("note").filter({ hasText: "No model is configured on this server" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: /Rules only/ })).toBeChecked();
+});
+
+test("the analyse feature is hidden when the server does not offer it", async ({ page }) => {
+  await page.route("**/api/capabilities", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ analyze: false }) }));
+  await open(page);
+  await expect(page.getByRole("button", { name: "Analyze your screenplay" })).toHaveCount(0);
+});
+
+test("an older server without the endpoint gives a clear message, not a silent failure", async ({ page }) => {
+  await open(page);
+  await page.route("**/api/analyze", (route) => route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "not found" }) }));
+  await page.getByRole("button", { name: "Analyze your screenplay" }).click();
   await page.getByLabel("Episode files").setInputFiles(upload([1]));
-  await page.getByText("With an AI model").click();
-  const key = page.getByLabel("API key");
-  await expect(key).toHaveAttribute("type", "password");
-  await expect(page.getByText("never stored, logged or shown again")).toBeVisible();
+  await page.getByRole("button", { name: "Find promos" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "does not support uploads" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Find promos" })).toBeEnabled();
 });
 
 test("a file that is not a screenplay shows a readable error and the form stays usable", async ({ page }) => {

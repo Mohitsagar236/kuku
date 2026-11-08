@@ -44,12 +44,9 @@ class UploadedFile(BaseModel):
 
 
 class AnalyzeRequest(BaseModel):
-    """One screenplay upload. ``api_key`` is used for this job only and is never stored."""
+    """One screenplay upload. The browser never sends or receives an API key."""
 
     model_config = ConfigDict(extra="forbid", strict=True)
     files: list[UploadedFile] = Field(min_length=1, max_length=60)
     mode: Literal["rules", "model"] = "rules"
     title: str = Field(default="", max_length=120)
-    provider: str | None = Field(default=None, max_length=40)
-    model: str | None = Field(default=None, max_length=80)
-    api_key: str | None = Field(default=None, max_length=400, repr=False)

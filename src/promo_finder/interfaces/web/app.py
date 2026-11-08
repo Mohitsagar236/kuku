@@ -40,7 +40,15 @@ def create_app(outputs: str | Path = "outputs", static_dir: Path | None = None) 
     runs = RunRepository(Path(outputs))
     editor = EditorService(runs)
     analysis_on = os.environ.get("PF_ANALYZE", "true").lower() != "false"
-    analysis = AnalysisService(Path(outputs), public=demo_mode) if analysis_on else None
+    try:
+        model_cap = int(os.environ.get("PF_MODEL_JOBS_PER_DAY", ""))
+    except ValueError:
+        model_cap = None  # default: capped on public servers, unlimited locally
+    analysis = (
+        AnalysisService(Path(outputs), public=demo_mode, max_model_jobs_per_day=model_cap)
+        if analysis_on
+        else None
+    )
     if analysis is not None:
         analysis.purge()
     static = (static_dir or WEB_ROOT).resolve()
@@ -103,13 +111,19 @@ def create_app(outputs: str | Path = "outputs", static_dir: Path | None = None) 
     def capabilities() -> dict[str, Any]:
         from promo_finder.application import analysis as limits
 
+        model = analysis.model_status() if analysis is not None else {"available": False}
         return {
             "analyze": analysis is not None,
             "public": demo_mode,
-            "needs_key_for_model": demo_mode,
+            "model": {  # which model a run would use and whether it can start; never the key
+                "available": bool(model.get("available")),
+                "name": model.get("name", ""),
+                "reason": model.get("reason", ""),
+            },
             "limits": {"files": limits.MAX_FILES, "file_kb": limits.MAX_FILE_BYTES // 1000,
                        "total_mb": limits.MAX_TOTAL_BYTES // 1_000_000},
             "retention_minutes": int((analysis.ttl_s if analysis else 0) // 60),
+            "model_jobs_per_day": analysis.max_model_jobs_per_day if analysis else 0,
         }  # fmt: skip
 
     @app.post("/api/analyze")
@@ -117,10 +131,8 @@ def create_app(outputs: str | Path = "outputs", static_dir: Path | None = None) 
         if analysis is None:
             raise EditorError(404, "uploads are disabled on this server")
         token = analysis.submit(
-            [(f.name, f.text) for f in body.files],
-            mode=body.mode, title=body.title, provider=body.provider,
-            model=body.model, api_key=body.api_key,
-        )  # fmt: skip
+            [(f.name, f.text) for f in body.files], mode=body.mode, title=body.title
+        )
         return JSONResponse({"job": token}, status_code=202)
 
     @app.get("/api/analyze/status")

@@ -1,7 +1,8 @@
 # Free public demo: fictional sample show scored once with a real model (shipped data), plus
-# in-app upload: visitors analyse their own screenplay (rules-only, or with their own API key).
-# Uploads are private/unlisted and deleted after an hour. No server-side model key, no confidential
-# outputs, no passwords, no persistent disks. PF_ANALYZE=false turns uploads off.
+# in-app upload: visitors analyse their own screenplay (Rules only, or an AI model that uses the
+# server's own GEMINI_API_KEY, set as a secret in the Render dashboard; never sent to the browser).
+# Uploads are private/unlisted and deleted after an hour; AI analyses are capped per day.
+# No confidential outputs, no passwords, no persistent disks. PF_ANALYZE=false turns uploads off.
 services:
   - type: web
     name: promo-finder-demo
@@ -16,5 +17,11 @@ services:
           name: promo-finder-demo
           type: web
           envVarKey: RENDER_EXTERNAL_HOSTNAME
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: GEMINI_API_KEY
+        sync: false  # set in the Render dashboard; never commit it
+      - key: PF_MODEL_JOBS_PER_DAY
+        value: "3"
       - key: PF_LOG_LEVEL
         value: INFO

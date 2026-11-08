@@ -29,6 +29,7 @@ export function App() {
   const [status, setStatus] = useState({});
   const [nudgeErr, setNudgeErr] = useState(null);
   const [analyzeOpen, setAnalyzeOpen] = useState(false);
+  const [caps, setCaps] = useState(null); // server capabilities; null until known or unsupported
   const wantPromo = useRef(init.p);
   const detailRef = useRef(null);
   const activeRun = useRef(runId);
@@ -49,6 +50,10 @@ export function App() {
       .catch((e) => e.name !== "AbortError" && setRunsErr(e.message));
     return () => ac.abort();
   }, [reload]);
+
+  useEffect(() => {
+    getJSON("/api/capabilities").then((c) => setCaps(c.analyze ? c : null)).catch(() => setCaps(null));
+  }, []);
 
   useEffect(() => {
     if (!runId) return;
@@ -244,10 +249,10 @@ export function App() {
   if (!runs.length)
     return html`<div>
       <${State} title="No results yet.">
-        <p>Analyze a screenplay right here, or run the tool on a show folder and reload:</p>
+        <p>${caps ? "Analyze a screenplay right here, or run" : "Run"} the tool on a show folder${caps ? "" : " first"} and reload:</p>
         <pre>make run-rules SHOW_DIR="path/to/show"   # free, no API key\nmake run SHOW_DIR="path/to/show"         # with the LLM in .env</pre>
       <//>
-      <${Analyze} onDone=${(r) => { setRunId(r.id); setReload((n) => n + 1); }} />
+      ${caps ? html`<${Analyze} caps=${caps} onDone=${(r) => { setRunId(r.id); setReload((n) => n + 1); }} />` : null}
     </div>`;
 
   const dl = (name) => `/api/file?id=${encodeURIComponent(runId)}&name=${name}`;
@@ -271,7 +276,7 @@ export function App() {
         <button type="button" role="tab" aria-selected=${tab === "promos"} class=${tab === "promos" ? "on" : ""} onClick=${() => setTab("promos")}>Promos</button>
         <button type="button" role="tab" aria-selected=${tab === "report"} class=${tab === "report" ? "on" : ""} onClick=${() => setTab("report")}>Quality report</button>
       </div>
-      <button type="button" class="btn small analyze-open" onClick=${() => setAnalyzeOpen((v) => !v)} aria-expanded=${analyzeOpen}>Analyze your screenplay</button>
+      ${caps ? html`<button type="button" class="btn small analyze-open" onClick=${() => setAnalyzeOpen((v) => !v)} aria-expanded=${analyzeOpen}>Analyze your screenplay</button>` : null}
       ${run && run.downloads && run.downloads.length
         ? html`<div class="downloads">${run.downloads.map((n) => html`<a key=${n} class="btn small" href=${dl(n)} download>${n.endsWith(".csv") ? "Download CSV" : "Download ranking"}</a>`)}</div>`
         : null}
@@ -280,8 +285,8 @@ export function App() {
 
     <div class="workspace-heading"><div><div class="eyebrow"><span class="hero-line" aria-hidden="true"></span> YOUR NEXT GREAT PROMO STARTS HERE</div><h2>${cur?.show || "Your shortlist"}</h2><p>Review the shortlist. Shape the next standout promo.</p></div><div class="hero-aside"><div class="hero-format" aria-hidden="true"><span>20–60</span><small>SECONDS. ALL IMPACT.</small></div><div class="run-meta"><span class="live-dot"></span>${KIND[cur?.kind] || "Analysis"}<span class="meta-divider">/</span>${promos.length} candidates</div></div></div>
 
-    ${analyzeOpen
-      ? html`<${Analyze} onClose=${() => setAnalyzeOpen(false)} onDone=${(r) => {
+    ${caps && analyzeOpen
+      ? html`<${Analyze} caps=${caps} onClose=${() => setAnalyzeOpen(false)} onDone=${(r) => {
           setAnalyzeOpen(false); setVariant("main"); setTab("promos"); wantPromo.current = "";
           setRunId(r.id); setReload((n) => n + 1);
         }} />`

@@ -30,8 +30,11 @@ def outputs(tmp_path: Path) -> Path:
 
 
 @pytest.fixture()
-def client(outputs: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
+def client(outputs: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> TestClient:
     monkeypatch.delenv("PF_DEMO_MODE", raising=False)
+    for var in ("LLM_PROVIDER", "LLM_MODEL", "GEMINI_API_KEY", "GOOGLE_API_KEY"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.chdir(tmp_path)  # never read the developer's real .env in tests
     outputs.mkdir()
     with TestClient(create_app(outputs), base_url=ORIGIN, raise_server_exceptions=False) as c:
         yield c
@@ -141,35 +144,86 @@ def test_nothing_is_written_to_the_shared_response_cache(
     assert not (tmp_path / ".cache").exists()
 
 
-# ------------------------------------------------------------------------- keys
+# ------------------------------------------------------------------------- server key policy
+
+SERVER_KEY = "AIzaSy-SERVER-SECRET-0123456789"
 
 
-def test_a_pasted_api_key_never_appears_in_any_response_or_stored_file(outputs, files) -> None:
-    secret = "sk-test-SECRET-0123456789"
+def gemini_env():
+    from promo_finder.infrastructure.llm import LLMSettings
 
+    return LLMSettings(
+        _env_file=None, provider="gemini", model="gemini-test", gemini_api_key=SERVER_KEY
+    )
+
+
+def test_the_browser_cannot_send_a_key_or_pick_a_provider(client, files) -> None:
+    for extra in ({"api_key": "k"}, {"provider": "openai"}, {"model": "x"}):
+        assert post(client, {"files": files, "mode": "model", **extra}).status_code == 400
+
+
+def test_model_runs_use_the_servers_key_and_it_never_reaches_a_response_or_file(
+    outputs, files
+) -> None:
     def boom(settings):
-        raise RuntimeError(f"401 for key {secret}")
+        raise RuntimeError(f"401 unauthorized for key {settings.gemini_api_key}")
 
-    svc = AnalysisService(outputs, public=True, llm_factory=boom)
-    tok = svc.submit(
-        [(f["name"], f["text"]) for f in files], mode="model", provider="gemini", api_key=secret
-    )
+    svc = AnalysisService(outputs, public=True, settings_factory=gemini_env, llm_factory=boom)
+    tok = svc.submit([(f["name"], f["text"]) for f in files], mode="model")
     st = _wait_service(svc, tok)
-    assert st["state"] == "error" and secret not in json.dumps(st)
+    assert st["state"] == "error" and SERVER_KEY not in json.dumps(st)
+    assert SERVER_KEY not in json.dumps(svc.model_status())
     assert all(
-        secret not in p.read_text(errors="ignore") for p in outputs.rglob("*") if p.is_file()
+        SERVER_KEY not in p.read_text(errors="ignore") for p in outputs.rglob("*") if p.is_file()
     )
-    assert svc._jobs[tok].secret == ""  # dropped from memory once the job ended
 
 
-def test_public_server_requires_the_visitors_own_key_for_a_model_run(outputs, files) -> None:
-    svc = AnalysisService(outputs, public=True)
+def test_a_server_with_a_key_runs_the_model_on_a_public_deployment_too(outputs, files) -> None:
+    svc = AnalysisService(outputs, public=True, settings_factory=gemini_env,
+                          llm_factory=lambda s: make_llm())  # fmt: skip
+    assert svc.model_status() == {"available": True, "name": "gemini/gemini-test", "reason": ""}
+    tok = svc.submit([(f["name"], f["text"]) for f in files], mode="model")
+    assert _wait_service(svc, tok)["state"] == "done"
+
+
+def test_without_a_server_key_model_mode_is_unavailable_but_rules_still_work(client, files) -> None:
+    caps = get(client, "/api/capabilities").json()
+    assert caps["model"]["available"] is False and "model" in caps["model"]["reason"].lower()
+    r = post(client, {"files": files, "mode": "model"})
+    assert r.status_code == 503 and "Rules only" in r.json()["error"]
+    assert (
+        wait(client, post(client, {"files": files, "mode": "rules"}).json()["job"])["state"]
+        == "done"
+    )
+
+
+def test_a_provider_without_its_key_is_reported_clearly(outputs, files) -> None:
+    from promo_finder.infrastructure.llm import LLMSettings
+
+    svc = AnalysisService(outputs, settings_factory=lambda: LLMSettings(
+        _env_file=None, provider="gemini", gemini_api_key=None))  # fmt: skip
+    st = svc.model_status()
+    assert st["available"] is False and "gemini API key" in st["reason"]
     with pytest.raises(AnalysisError) as e:
         svc.submit([(f["name"], f["text"]) for f in files], mode="model")
-    assert e.value.code == 400 and "own API key" in e.value.message
-    with pytest.raises(AnalysisError):
-        svc.submit([(f["name"], f["text"]) for f in files], mode="model", provider="bogus",
-                   api_key="k")  # fmt: skip
+    assert e.value.code == 503
+
+
+def test_public_servers_cap_daily_model_runs_but_never_rules_runs(outputs, files) -> None:
+    svc = AnalysisService(outputs, public=True, max_model_jobs_per_day=2,
+                          settings_factory=gemini_env, llm_factory=lambda s: make_llm())  # fmt: skip
+    fl = [(f["name"], f["text"]) for f in files]
+    for _ in range(2):
+        assert _wait_service(svc, svc.submit(fl, mode="model"))["state"] == "done"
+    with pytest.raises(AnalysisError) as e:
+        svc.submit(fl, mode="model")
+    assert e.value.code == 429 and "daily limit of 2" in e.value.message
+    assert _wait_service(svc, svc.submit(fl, mode="rules"))["state"] == "done"  # still free
+
+
+def test_local_installs_have_no_daily_model_cap_by_default(outputs) -> None:
+    assert AnalysisService(outputs, public=False).max_model_jobs_per_day == 0
+    assert AnalysisService(outputs, public=True).max_model_jobs_per_day > 0
 
 
 def test_rules_mode_needs_no_key_even_on_a_public_server(outputs, files) -> None:
@@ -243,10 +297,16 @@ def test_the_body_limit_for_uploads_is_larger_than_for_edits_but_still_bounded(c
     assert client.post("/api/review?id=x", content=edit, headers=HDR).status_code == 413
 
 
-def test_capabilities_describe_limits_and_key_policy(client) -> None:
+def test_capabilities_describe_limits_and_the_model_but_never_the_key(client, monkeypatch) -> None:
     caps = get(client, "/api/capabilities").json()
     assert caps["analyze"] is True and caps["limits"]["files"] == 60
-    assert caps["needs_key_for_model"] is False and caps["retention_minutes"] == 60
+    assert caps["retention_minutes"] == 60 and set(caps["model"]) == {"available", "name", "reason"}
+    assert caps["model"]["available"] is False  # no key in this test environment
+    monkeypatch.setenv("LLM_PROVIDER", "gemini")
+    monkeypatch.setenv("GEMINI_API_KEY", SERVER_KEY)
+    caps = get(client, "/api/capabilities").json()
+    assert caps["model"]["available"] is True and caps["model"]["name"].startswith("gemini/")
+    assert SERVER_KEY not in json.dumps(caps)
 
 
 def test_uploads_can_be_switched_off(outputs, monkeypatch) -> None:
