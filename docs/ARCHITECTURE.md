@@ -56,3 +56,8 @@ There is no multi-tenant isolation, upload endpoint, analysis queue or HA storag
 ## Migration decisions
 
 The previous source tree is replaced, including uncommitted editor-feedback functionality. The existing parser, candidate rules, prompts, scoring semantics, ranking and evaluation algorithms were retained and rehomed under enforceable boundaries. They are tested domain behavior, so this migration does not replace them with new unmeasured heuristics. The HTTP transport and frontend delivery were rewritten. Unused database/Redis settings were removed. There is no reason to add microservices, a vector database or an orchestration framework to this workload.
+
+
+## In-app analysis (uploads)
+
+`application/analysis.py` runs the normal pipeline on files uploaded through `POST /api/analyze` (JSON text, 8 MB cap on that path only). One worker thread, a short queue and hard size limits keep it bounded. Privacy: each job has a 128-bit token; its run lives under `upload-<token>`, is excluded from `/api/runs` (only the owner's own link adds it), and uploads/results are deleted after `ttl_s` by folder age, so cleanup survives restarts. The response cache is never used (`persist_cache=False`). A visitor's API key is held in memory for that job only, scrubbed from error text and dropped when the job ends; on a public server a model run requires the visitor's own key, and the server holds no model key. Rules-only runs need no key.

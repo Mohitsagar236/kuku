@@ -29,6 +29,8 @@ make run SHOW_DIR="$SHOW"                 # full analysis
 make ui                                   # http://127.0.0.1:8765
 ```
 
+**Try your own screenplay, no command line.** In the viewer, press *Analyze your screenplay*, choose the episode `.txt` files of one show (same timestamped format as the input pack) and pick *Rules only* (free, no key, seconds: the full 50-episode pack takes about 8 s) or *With an AI model* (minutes; on a local install it uses the key in `.env`, on the public demo you paste your own key, which is used for that one analysis and never stored or logged). Each upload becomes a private, unlisted run, reachable only by its link, with the full editor, report and CSV, and is deleted after one hour. Limits: 60 files, 400 KB per file, 8 MB in total, one analysis at a time. Set `PF_ANALYZE=false` to switch uploads off. Measured on the fictional demo show with Gemini: 12 live calls, 64 s.
+
 The viewer browses runs and robustness variants, downloads CSV/cut lists, displays quality reports, saves editor verdicts and suggests valid cut adjustments. It needs no browser internet connection after installation. Arrow keys or j/k move through promos. Review data lives in `outputs/<show>/editor_feedback.yaml`; refresh report metrics with `make feedback RUN=outputs/<show>/<run>`.
 
 `python -m promo_finder --help` or `.venv/bin/promo-finder --help` lists commands. `--episodes`, `--no-ablation`, `--stability`, `--allow-partial`, `--no-cache` and `--out` control individual runs. Run `compare` for two smoke results, and `package` for a private output archive. The old internal Python module paths have been replaced; existing Make targets and output formats are preserved.
