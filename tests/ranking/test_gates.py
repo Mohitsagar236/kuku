@@ -90,3 +90,35 @@ def test_fallback_candidates_are_100_percent_rules(show, rcfg) -> None:
     c = mk(show, 1, 0.0, 26.5)
     rule, llm = attribution(fuse(c, None, rcfg), rcfg)
     assert llm == 0 and rule > 0
+
+
+def _refined_collision(show, rcfg):
+    """A and B pass selection (IoU 0.12, different ends); A's refined end then equals B's end."""
+    rcfg.selection.max_per_scene = 5  # both start in the same scene of the fixture
+    a, b = mk(show, 1, 0.0, 26.5), mk(show, 1, 20.0, 54.5)
+    end_b = next(x for x in show.episode(1).beats if abs(x.end_s - 54.5) < 1e-6)
+    scores = {
+        a.id: llm_scores(a, hook=9, cliffhanger=9, intensity=9, clarity=9,
+                         end_changed=True, end_beat_id=end_b.id, end_cliff=8),
+        b.id: llm_scores(b, hook=7, cliffhanger=7, intensity=7, clarity=7),
+    }  # fmt: skip
+    return [a, b], scores
+
+
+def test_refinement_that_lands_on_another_promos_ending_does_not_deliver_both(show, rcfg) -> None:
+    cands, scores = _refined_collision(show, rcfg)
+    res = rank(show, cands, scores, rcfg)
+    assert len(res.selected) == 2  # selection saw two distinct candidates...
+    assert [p.id for p in res.promos] == [cands[0].id]  # ...but only the better cut is delivered
+    assert res.promos[0].end_refined and res.promos[0].segments[0].end_s == 54.5
+    assert res.dropped["redundant_after_refinement"] == 1
+    assert res.final_stats.dropped_redundant_after_refinement == 1
+    assert res.promos[0].rank == 1
+
+
+def test_delivered_promos_never_overlap_or_share_an_ending(show, rcfg) -> None:
+    cands, scores = _refined_collision(show, rcfg)
+    ps = rank(show, cands, scores, rcfg).promos
+    for i, p in enumerate(ps):
+        for q in ps[i + 1 :]:
+            assert p.segments[-1].end_s != q.segments[-1].end_s

@@ -1,7 +1,7 @@
 PY ?= .venv/bin/python
 SHOW_DIR ?=
 
-.PHONY: docs ui install test lint fmt typecheck check ingest-check candidates run run-rules smoke package-outputs check-confidential
+.PHONY: doctor docs ui install test lint fmt typecheck check ingest-check candidates run run-rules smoke package-outputs check-confidential
 
 install:
 	python3.12 -m venv .venv
@@ -57,6 +57,11 @@ check-confidential:
 PORT ?= 8765
 ui:
 	$(PY) frontend/server.py --port $(PORT)
+
+# Preflight before a real run: .env, provider reachable, model exists, 1 JSON test call,
+# daily quota left vs calls needed, input folder parses. No secrets printed. NO_CALL=1 skips the call.
+doctor:
+	$(PY) -m promo_finder_cli doctor $(if $(SHOW_DIR),"$(SHOW_DIR)") $(if $(NO_CALL),--no-call)
 
 # Solution doc: public docs/SOLUTION.pdf (no quotes) + private docs/SOLUTION_submission.pdf (git-ignored); fails if either exceeds 2 pages
 docs:

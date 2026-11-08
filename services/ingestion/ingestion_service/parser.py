@@ -314,6 +314,10 @@ class _EpisodeParser:
             text = _clean_dialogue(text)
         else:
             tags, vo, os_ = [], False, False
+            if btype is BeatType.OTHER and up not in _OTHER_BLOCKS:
+                # unquoted text under a bare label: maybe a speaker. Keep the label so the
+                # loader can promote it if that name speaks (quoted) elsewhere in the show.
+                speaker_raw = name
         if not text:
             self.warn("empty_block", f"block {name!r} empty after cleanup", blk.line)
             return
@@ -399,3 +403,32 @@ class _EpisodeParser:
 def parse_episode(text: str, source_file: str = "", fallback_number: int | None = None) -> Episode:
     """Parse one episode file's text into a validated ``Episode``. Never raises on content."""
     return _EpisodeParser(text, source_file, fallback_number).parse()
+
+
+def promote_unquoted_speakers(episodes: list[Episode]) -> int:
+    """Turn unquoted ``**NAME:**`` blocks into dialogue when NAME speaks elsewhere in the show.
+
+    A bare label with unquoted text is ambiguous per file (a ``MONTAGE`` block or a speaker whose
+    writer dropped the quote marks and parentheticals). Show-wide evidence settles it: a label
+    that is dialogue somewhere else is a speaker; one that never is stays ``other``.
+    Returns how many beats were promoted.
+    """
+    known = {
+        normalize_speaker(b.speaker_raw)
+        for ep in episodes
+        for b in ep.beats
+        if b.type is BeatType.DIALOGUE and b.speaker_raw
+    }
+    n = 0
+    for ep in episodes:
+        for b in ep.beats:
+            if (
+                b.type is BeatType.OTHER
+                and b.speaker_raw
+                and normalize_speaker(b.speaker_raw) in known
+            ):
+                b.type = BeatType.DIALOGUE
+                b.speaker = normalize_speaker(b.speaker_raw)
+                b.text = _clean_dialogue(b.text) or b.text
+                n += 1
+    return n

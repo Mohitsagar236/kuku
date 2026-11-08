@@ -34,6 +34,10 @@ class LLMSettings(BaseSettings):
     anthropic_api_key: str | None = Field(None, validation_alias=_a("ANTHROPIC_API_KEY"))
     openai_api_key: str | None = Field(None, validation_alias=_a("OPENAI_API_KEY"))
     ollama_base_url: str = Field("http://localhost:11434", validation_alias=_a("OLLAMA_BASE_URL"))
+    # provider "openai_compatible": any OpenAI-style /chat/completions endpoint
+    base_url: str = Field("", validation_alias=_a("LLM_BASE_URL"))
+    api_key: str | None = Field(None, validation_alias=_a("LLM_API_KEY"))
+    extra_headers: str = Field("", validation_alias=_a("LLM_EXTRA_HEADERS"))  # JSON object
 
 
 DEFAULT_MODELS = {

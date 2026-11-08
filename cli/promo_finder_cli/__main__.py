@@ -4,6 +4,7 @@ run SHOW_DIR [--episodes 1-3]   the one-command in-process pipeline
 smoke SHOW_DIR --episodes 1-3   a few episodes through the real LLM; prints health counters
 package [--show SLUG]           zip the latest run for PRIVATE upload
 check-confidential SHOW_DIR     fail if tracked repo files contain script text
+doctor [SHOW_DIR]               preflight: .env, provider, model, quota, input folder
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from ingestion_service import load_show, parse_episode_spec
 from promo_common.confidential import build_shingles, scan_repo
 from promo_common.config import get_settings
 from promo_common.errors import IngestionError
-from promo_common.llm import LLMAuthError, LLMSettings
+from promo_common.llm import LLMAuthError, LLMConfigError, LLMSettings
 from promo_common.llm.factory import PROVIDERS
 from promo_common.logging import setup_logging
 
@@ -52,7 +53,7 @@ def _execute(args: argparse.Namespace, opts: RunOptions, settings: LLMSettings) 
         run = run_pipeline(
             args.show_dir, opts, settings, progress=lambda m: print(f"[run] {m}", flush=True)
         )
-    except (LLMAuthError, IngestionError) as e:
+    except (LLMAuthError, LLMConfigError, IngestionError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
     except RunInterrupted as e:
@@ -104,6 +105,12 @@ def main(argv: list[str] | None = None) -> int:
     k.add_argument("--show", help="show slug if several exist")
     k.add_argument("--include-smoke", action="store_true")
 
+    d = sub.add_parser("doctor", help="preflight: .env, provider, model, quota, input folder")
+    d.add_argument("show_dir", nargs="?", help="input folder to test-parse (optional)")
+    d.add_argument("--provider", help="override LLM_PROVIDER")
+    d.add_argument("--model", help="override LLM_MODEL")
+    d.add_argument("--no-call", action="store_true", help="skip the 1-request JSON test call")
+
     cm = sub.add_parser("compare", help="side-by-side of two smoke runs (e.g. two models)")
     cm.add_argument("run_a")
     cm.add_argument("run_b")
@@ -129,6 +136,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{dest}  ({dest.stat().st_size / 1024:.0f} KB)")
         print("CONFIDENTIAL: upload privately only. This archive is git-ignored; never commit it.")
         return 0
+
+    if args.cmd == "doctor":
+        from promo_finder_cli.doctor import run_doctor
+
+        return run_doctor(args.show_dir, _settings(args), call=not args.no_call)
 
     if args.cmd == "compare":
         try:

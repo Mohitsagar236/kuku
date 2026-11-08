@@ -1,0 +1,104 @@
+EPISODE NUMBER: 2
+EPISODE LOGLINE: Priya and Theo follow the money.
+CONTINUITY NOTES: Picks up in the lobby of Episode 1.
+
+--- SCRIPT START ---
+
+SCENE 01
+Scene heading: INT. THEO'S APARTMENT - NIGHT
+Scene start: 00:00.00
+Scene end: 00:21.20
+
+Actions and dialogue:
+
+**CAMERA:**
+Start: (00:00.20) | End: (00:02.70)
+Laptop screen glows over two tired faces.
+
+**THEO:**
+Start: (00:03.20) | End: (00:07.20)
+“Forty-one transfers. All under ten thousand, so nobody flags them.”
+
+**PRIYA (Quietly):**
+Start: (00:07.70) | End: (00:09.70)
+“Where do they land?”
+
+**THEO:**
+Start: (00:10.20) | End: (00:12.60)
+“A company called Kestrel Holdings.”
+
+**PRIYA:**
+Start: (00:13.10) | End: (00:14.90)
+“Who owns Kestrel?”
+
+**ACTION:**
+Start: (00:15.40) | End: (00:18.40)
+Theo types. The registry loads. He goes pale.
+
+**THEO (Stunned):**
+Start: (00:18.90) | End: (00:20.90)
+“Dennis Hale's wife.”
+
+SCENE 02
+Scene heading: INT. OKONKWO RESIDENCE - HALLWAY - LATER
+Scene start: 00:21.20
+Scene end: 00:48.70
+
+Actions and dialogue:
+
+**ACTION:**
+Start: (00:21.40) | End: (00:24.90)
+Priya rings a doorbell. Marguerite Okonkwo, the CFO, opens it in a robe.
+
+**MARGUERITE (Icy):**
+Start: (00:25.40) | End: (00:29.00)
+“You should not be here. They are watching your phone.”
+
+**PRIYA:**
+Start: (00:29.50) | End: (00:32.90)
+“Someone logged in from your office on Friday night.”
+
+**MARGUERITE:**
+Start: (00:33.40) | End: (00:35.80)
+“I was in Singapore on Friday.”
+
+**PRIYA (Pleading):**
+Start: (00:36.30) | End: (00:38.70)
+“Then who has your keycard?”
+
+**ACTION:**
+Start: (00:39.20) | End: (00:42.20)
+Marguerite glances over Priya's shoulder, then pulls her inside.
+
+**MARGUERITE (Whispering):**
+Start: (00:42.70) | End: (00:46.30)
+“Walk away. They buried the last person who asked.”
+
+**PRIYA:**
+Start: (00:46.80) | End: (00:48.40)
+“What last person?”
+
+SCENE 03
+Scene heading: EXT. STREET - NIGHT
+Scene start: 00:48.70
+Scene end: 01:00.60
+
+Actions and dialogue:
+
+**SFX:**
+Start: (00:48.90) | End: (00:51.40)
+A car idles at the curb with its lights off.
+
+**ACTION:**
+Start: (00:51.90) | End: (00:54.90)
+Corbin, Dennis's assistant, photographs Priya leaving the house.
+
+**CORBIN:**
+Start: (00:55.40) | End: (00:57.20)
+“She has the copy.”
+
+**DENNIS (Over the phone):**
+Start: (00:57.70) | End: (01:00.30)
+“Then get it. Whatever it costs.”
+
+--- SCRIPT END ---

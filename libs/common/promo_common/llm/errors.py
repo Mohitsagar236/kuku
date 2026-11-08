@@ -7,6 +7,10 @@ class LLMError(Exception):
     """Base class; not retried."""
 
 
+class LLMConfigError(LLMError, ValueError):
+    """Bad or missing LLM settings in .env (unknown provider, no base URL, bad header JSON)."""
+
+
 class LLMTransientError(LLMError):
     """Timeouts, 5xx, connection resets: retried with exponential backoff.
 

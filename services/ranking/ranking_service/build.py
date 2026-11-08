@@ -9,6 +9,7 @@ from promo_common.timecode import format_timecode
 from promo_common.validation import validate_segments
 
 from ranking_service.fusion import Fused
+from ranking_service.select import segments_redundant
 
 CLIFF_WINDOW_S = 8.0
 HOOK_WINDOW_S = 3.0
@@ -27,6 +28,7 @@ class FinalizeStats:
     trims_rejected: int = 0
     ends_refined: int = 0
     ends_refine_rejected: int = 0
+    dropped_redundant_after_refinement: int = 0
 
 
 def _moment(show: Show, beat: Beat) -> Moment:
@@ -115,8 +117,20 @@ def _post_first(f: Fused, rank: int) -> str:
     return f"{lead} {strengths}.{tail}"
 
 
+def _as_segments(p: Promo) -> list[Segment]:
+    return [
+        Segment(episode_number=x.episode, start_s=x.start_s, end_s=x.end_s,
+                start_beat_id="", end_beat_id="")
+        for x in p.segments
+    ]  # fmt: skip
+
+
 def finalize(
-    show: Show, ordered: list[Fused], apply_trim: bool = True
+    show: Show,
+    ordered: list[Fused],
+    apply_trim: bool = True,
+    dedupe_iou: float = 0.30,
+    same_ending_tol_s: float = 1.5,
 ) -> tuple[list[Promo], FinalizeStats]:
     beats = {b.id: b for ep in show.episodes for b in ep.beats}
     stats = FinalizeStats()
@@ -168,6 +182,11 @@ def finalize(
                 errors.append("cliffhanger_not_in_last_segment")
         if errors or hook is None or cliff is None:
             stats.validation_failures.append((c.id, errors))
+            continue
+        if any(
+            segments_redundant(segs, _as_segments(p), dedupe_iou, same_ending_tol_s) for p in promos
+        ):  # trim / end refinement moved this cut onto an already delivered promo
+            stats.dropped_redundant_after_refinement += 1
             continue
         rank = len(promos) + 1
         sig = c.signals

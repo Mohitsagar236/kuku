@@ -136,3 +136,13 @@ Format: what the AI got wrong -> how it was caught -> fix.
     the scanner now ignores triple-quote delimiters).
 38. **I wrote a test count into the doc before measuring it** (243; the suite has 242). Caught by
     running the suite before committing. Rule now: numbers in the doc come from a run, not a plan.
+39. **Rehearsal on an invented, drifted show found two real bugs the 50-episode run never hit**
+    (pass B, Claude Sonnet 5.5): (a) a speaker block with unquoted text and no parenthetical was
+    read as an unknown block, so its lines lost their speaker and dialogue status; now promoted to
+    dialogue only when that name speaks (quoted) elsewhere in the show, with tests including the
+    negative case; (b) end refinement could move a promo's end onto another promo's ending *after*
+    selection had de-duplicated, delivering two near-identical clips (the real run happened to have
+    none). Fixed in `finalize`, with a regression test I checked fails when the fix is disabled.
+40. **My own test mistakes while adding the doctor tests:** a base URL with `?token=` appended
+    (breaks `/models`), assertions that were too weak to prove anything (`rc in (0, 1)`, a tautological
+    estimate check), and a wrong attribute name. All caught by running the tests, then strengthened.

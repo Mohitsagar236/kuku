@@ -11,7 +11,7 @@ from promo_common.config import get_settings
 from promo_common.errors import IngestionError
 from promo_common.schemas.timeline import Episode, ParseWarning, Show
 
-from ingestion_service.parser import parse_episode
+from ingestion_service.parser import parse_episode, promote_unquoted_speakers
 from ingestion_service.speakers import resolve_speakers
 
 log = logging.getLogger(__name__)
@@ -106,6 +106,14 @@ def load_show(
         )
 
     episodes = [by_number[n] for n in sorted(by_number)]
+    promoted = promote_unquoted_speakers(episodes)
+    if promoted:
+        warnings.append(
+            ParseWarning(
+                code="unquoted_dialogue_promoted",
+                message=f"{promoted} unquoted lines under speaker labels were read as dialogue",
+            )
+        )
     aliases = resolve_speakers(episodes)
     all_beats = [b for e in episodes for b in e.beats]
     dialogue = sum(1 for b in all_beats if b.type.value == "dialogue")

@@ -70,5 +70,9 @@ def rank(
         if ranks:
             selected = apply_rerank(selected, ranks, cfg)
             used = True
-    promos, fstats = finalize(show, selected, cfg.trim.apply)
+    promos, fstats = finalize(
+        show, selected, cfg.trim.apply, cfg.selection.dedupe_iou, cfg.selection.same_ending_tol_s
+    )
+    if fstats.dropped_redundant_after_refinement:
+        dropped["redundant_after_refinement"] += fstats.dropped_redundant_after_refinement
     return RankResult(promos, fused, selected, dropped, fstats, used, pre, dict(gated), len(cands))

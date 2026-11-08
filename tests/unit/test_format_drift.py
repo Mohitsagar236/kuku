@@ -85,3 +85,34 @@ def test_missing_scene_times_derive_from_beats() -> None:
     src = BASE.replace("Scene start: 00:00.00\n", "").replace("Scene end: 00:30.00\n", "")
     sc = parse_episode(src).scenes[0]
     assert (sc.start_s, sc.end_s) == (1.0, 7.0)
+
+
+def _show_with_unquoted(tmp_path, label: str):
+    from ingestion_service import load_show
+
+    def ep(n: int, body: str) -> str:
+        return (
+            f"EPISODE NUMBER: {n}\n--- SCRIPT START ---\nSCENE 01\nSCENE HEADING: INT. ROOM\n"
+            f"SCENE START: 00:00.00\nSCENE END: 00:20.00\nActions and dialogue:\n\n{body}"
+        )
+
+    spoken = "**MIRA (Angry):**\nStart: (00:01.00) | End: (00:03.00)\n“You lied to me.”\n\n"
+    bare = f"**{label}:**\nStart: (00:04.00) | End: (00:06.00)\nThis line has no quote marks at all.\n\n"
+    (tmp_path / "ep1.txt").write_text(ep(1, spoken))
+    (tmp_path / "ep2.txt").write_text(ep(2, spoken + bare))
+    return load_show(tmp_path)
+
+
+def test_unquoted_line_is_promoted_when_that_speaker_speaks_elsewhere(tmp_path) -> None:
+    show = _show_with_unquoted(tmp_path, "MIRA")
+    last = show.episodes[1].beats[-1]
+    assert last.type is BeatType.DIALOGUE and last.speaker == "MIRA"
+    assert last.text == "This line has no quote marks at all."
+    assert "unquoted_dialogue_promoted" in {w.code for w in show.warnings}
+
+
+def test_unquoted_block_that_never_speaks_stays_other(tmp_path) -> None:
+    show = _show_with_unquoted(tmp_path, "MONTAGE")
+    last = show.episodes[1].beats[-1]
+    assert last.type is BeatType.OTHER and last.speaker is None
+    assert "unquoted_dialogue_promoted" not in {w.code for w in show.warnings}

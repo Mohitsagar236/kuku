@@ -29,6 +29,7 @@ cp .env.example .env    # then set LLM_PROVIDER / GEMINI_API_KEY etc.
 ```bash
 SHOW="path/to/show-folder"                   # folder of episode-NNN-*.txt files
 
+make doctor    SHOW_DIR="$SHOW"             # preflight: .env, provider, model, 1 test call, quota, input parses
 make run-rules SHOW_DIR="$SHOW"             # free baseline, no LLM, no key
 make smoke     SHOW_DIR="$SHOW" EPISODES=1-3 # a few episodes through the real LLM, health check
 make run       SHOW_DIR="$SHOW"             # full run: parse -> candidates -> LLM scoring -> rank -> report
@@ -49,9 +50,10 @@ Set these in `.env`; no code changes:
 
 | Variable | Meaning |
 |---|---|
-| `LLM_PROVIDER` | `gemini`, `groq`, `anthropic`, `openai`, `ollama`, `mock`, or `none` (rules only) |
+| `LLM_PROVIDER` | `gemini`, `groq`, `anthropic`, `openai`, `openai_compatible`, `ollama`, `mock`, or `none` (rules only) |
 | `LLM_MODEL` | blank = provider default |
 | `<PROVIDER>_API_KEY` | key for the chosen provider |
+| `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_EXTRA_HEADERS` | for `openai_compatible` (any OpenAI-style endpoint): base URL ending before `/chat/completions`, optional bearer key, optional JSON object of extra headers |
 | `LLM_RPM`, `LLM_RPD` | your key's real per-minute / per-day limits (the client throttles to them) |
 | `LLM_BUDGET_USD`, `LLM_BUDGET_CALLS` | optional per-run caps; the run stops (or finishes on rules with `--allow-partial`) |
 
@@ -59,8 +61,9 @@ Set these in `.env`; no code changes:
 
 **What has been tested live:** only Gemini (`gemini-3.5-flash-lite` for the full 50-episode run
 and smoke runs, `gemini-3.1-flash-lite` in one smoke run). Groq, Anthropic, OpenAI and Ollama
-adapters are tested only against mocked HTTP replies in the test suite: they have never been run
-against the real service, so smoke-test them first (`make smoke`).
+adapters are tested only against mocked HTTP replies in the test suite, and `openai_compatible` against a
+local stub HTTP server: none has been run against a real service, so run `make doctor` and then
+`make smoke` first. See `INTERVIEW.md` for the fresh-clone runbook, runtimes and troubleshooting.
 
 ## The viewer
 

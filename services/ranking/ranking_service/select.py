@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from promo_common.schemas import Candidate, Show
+from promo_common.schemas import Candidate, Segment, Show
 from promo_common.timecode import overlap
 
 from ranking_service.config import Selection
@@ -26,6 +26,29 @@ def same_ending(a: Candidate, b: Candidate, tol_s: float) -> bool:
     """Promos cutting at the same cliffhanger moment are redundant, even with little overlap."""
     x, y = a.segments[-1], b.segments[-1]
     return x.episode_number == y.episode_number and abs(x.end_s - y.end_s) < tol_s
+
+
+def segments_redundant(
+    a: list[Segment], b: list[Segment], iou_limit: float, same_end_tol_s: float
+) -> str | None:
+    """Why two DELIVERED cuts are redundant ('overlap' / 'same_ending'), else None.
+
+    Same thresholds as ``select``, but on the final segments: end refinement can move a cut
+    onto another promo's ending after selection has already de-duplicated the candidates.
+    """
+    ov = sum(
+        overlap(x.start_s, x.end_s, y.start_s, y.end_s)
+        for x in a
+        for y in b
+        if x.episode_number == y.episode_number
+    )
+    union = sum(x.end_s - x.start_s for x in a) + sum(y.end_s - y.start_s for y in b) - ov
+    if union > 0 and ov / union > iou_limit:
+        return "overlap"
+    x, y = a[-1], b[-1]
+    if x.episode_number == y.episode_number and abs(x.end_s - y.end_s) < same_end_tol_s:
+        return "same_ending"
+    return None
 
 
 def scene_of(show: Show, cand: Candidate) -> tuple[int, int]:

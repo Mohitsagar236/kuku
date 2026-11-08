@@ -4,6 +4,7 @@ from promo_common.llm.errors import (
     DailyQuotaExhausted,
     InvalidLLMOutput,
     LLMAuthError,
+    LLMConfigError,
     LLMError,
     LLMRateLimitError,
     LLMTransientError,
@@ -14,6 +15,7 @@ from promo_common.llm.prompts import Prompt, load_prompt
 from promo_common.llm.settings import LLMSettings
 
 __all__ = [
+    "LLMConfigError",
     "BudgetExceeded",
     "DailyQuotaExhausted",
     "InvalidLLMOutput",
