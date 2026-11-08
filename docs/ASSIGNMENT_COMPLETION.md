@@ -8,7 +8,7 @@ problem; Problems 2 and 3 are alternatives, not additional deliverables.
 | Requirement | Verified local result |
 |---|---|
 | Read the full input pack | Source hash matches the retained run; 50 episodes, 3,727 beats, no parse warnings |
-| Find 20-60 second promos | 30 main promos, 20.3-60.0 seconds, from 27 episodes (run 20261108-184323) |
+| Find 20-60 second promos | 30 main promos, 20.3-60.0 seconds, from 27 episodes (run 20261108-191428) |
 | Ordered episode/start/end for every segment | JSON, CSV and editor cut list; deterministic cut and timestamp checks passed |
 | Hook within the first three seconds | Every delivered hook is inside the first three seconds and matches its source beat |
 | Cliffhanger and why it works | Source-backed closing moment, rationale and posting-priority reason present on every promo |
@@ -37,7 +37,7 @@ problem; Problems 2 and 3 are alternatives, not additional deliverables.
 - Gemini doctor: provider and model found, generic JSON-mode call passed, full-pack
   parsing/candidate diagnostics passed. The generic call sent no screenplay text.
   This audit reused existing full-pack judgments and did not claim a new live full run.
-- Both solution PDFs rendered as two pages. Top-three IDs match run 20261108-184323.
+- Both solution PDFs rendered as two pages. Top-three IDs match run 20261108-191428.
 - Fresh wheel installed with locked dependencies outside the checkout; packaged
   configuration/prompts/assets, rules pipeline, health/readiness, browsing, review
   persistence and CSV download checked independently.
@@ -114,7 +114,7 @@ misleading "DailyQuotaExhausted" warning or touch the rate-limit counter (new
 `LLMDisabled` error plus a regression test). Also fixed: the 23-of-30 "needs context" weakness. Cause: the blind judge scored
 clips 7-8 while naming a missing backstory. Change: `clarity_v3` (a named gap caps
 clarity at 6), a blind-clarity gate of 5, clarity weight 0.20 to 0.25. A live re-run
-(24 Gemini calls, scoring served from cache) produced run 20261108-184323, which is now
+(24 Gemini calls, scoring served from cache) produced run 20261108-191428, which is now
 the submission run; the previous run 20261108-153346 stays on disk unedited. Result:
 1 of 30 flagged, dead air 3 to 1, weak endings 14 to 10, hook/cliffhanger means unchanged,
 audit script clean. Trade-off: promos ending at an episode's end rose from 1/30 to 11/30;
@@ -126,7 +126,7 @@ start mid-scene, and no human accuracy labels exist.
 - Cut-start bug: 13 of 30 promos began 0.1-0.6 s after a camera direction that frames their
   first line (including rank 1). Starts now snap back onto that shot when the cut still
   validates (new `_snap_starts`, 3 tests). Same 30 promos, same order, durations 20.3-60.0 s;
-  new run `20261108-184323` (0 live calls, all judgments cached) replaces `-182755` as the
+  new run `20261108-191428` (0 live calls, all judgments cached) replaces `-182755` as the
   submission run. `-153346` and `-182755` stay on disk unedited.
 - Cache bug: response-cache keys ignored the provider, so a mock run and a Gemini run with
   the same model name shared entries. Non-Gemini providers are now namespaced; Gemini keys

@@ -59,7 +59,7 @@ The real application was checked read-only: no synthetic approvals or notes were
 
 ## Retained run evidence
 
-- Full Gemini result (submission run): `outputs/i-married-a-broken-soldier-he-was-a-duke/20261108-184323/`; earlier run `20261108-153346` kept unedited.
+- Full Gemini result (submission run): `outputs/i-married-a-broken-soldier-he-was-a-duke/20261108-191428/`; earlier run `20261108-153346` kept unedited.
 - Cached three-episode smoke: `outputs/i-married-a-broken-soldier-he-was-a-duke/smoke-20261108-153516/`.
 - Fresh Gemini smoke, including three raw responses: `outputs/i-married-a-broken-soldier-he-was-a-duke/smoke-20261108-153712/`.
 - Full-run archive: `outputs/packages/i-married-a-broken-soldier-he-was-a-duke-20261108-153346.zip`.

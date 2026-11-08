@@ -51,12 +51,14 @@ server. That is why `doctor` and `smoke` come before `run`.
 
 ## 3. How long it takes and how many calls
 
-- Calls (measured on the 50-episode show; `make doctor` prints this for any show): about 70 for the
-  main ranking (at most 78). Rule of thumb: candidates / 8 per episode, plus 1 call per 6 of the top
+- Calls (an ESTIMATE from the batch formula, not a measured cold run: no cold full-pack run is
+  retained, because earlier runs filled the response cache; `make doctor` prints it for any show):
+  about 70 for the main ranking (at most 78). Rule of thumb: candidates / 8 per episode, plus 1 call per 6 of the top
   60 for blind clarity, plus 2 rerank passes.
 - Ablations (on by default) re-score what they change: up to about the same again. Time-boxed? `--no-ablation`.
 - Measured: 3-episode smoke = 10-12 calls. 6-episode unseen show = 17 calls, 84 s wall time
-  at `LLM_RPM=10`, 2 workers. Per-call latency 1.5-3 s on the free Gemini model.
+  at `LLM_RPM=10`, 2 workers. Measured per-call latency on the free Gemini model: mean 1.7-4.0 s on small runs, but 7.9 s
+  (p50 7.0 s) on the first full 50-episode run, whose prompts are larger.
 - Estimate, free tier (`LLM_RPM=10`): 70 calls is at least 7 minutes, and the rate limit, not the
   model, is the bottleneck. With ablations, plan 15 minutes. `LLM_RPD=200` covers one show per day.
 - Estimate, paid tier (RPM 60+, concurrency 4): latency-bound, about 70 calls x 2-3 s / 4 = 1 to 2

@@ -82,8 +82,8 @@ final = 0.5·score + 0.5·listwise rerank score        (top 30 only; stitched pr
   <tr><td>Rank them: which to post first and why</td><td><code>rank</code>, <code>post_first_because</code>, <code>ranking.md</code>; top 3 below</td></tr>
   <tr><td>Check quality: where does it pick badly?</td><td><code>quality_report.md</code> §9 and section 8 below</td></tr>
 </table>
-<p class="note">Top 3 to post first (run <code>20261108-184323</code>; scores 0–10):</p>
-<!--top3 run=i-married-a-broken-soldier-he-was-a-duke/20261108-184323
+<p class="note">Top 3 to post first (run <code>20261108-191428</code>; scores 0–10):</p>
+<!--top3 run=i-married-a-broken-soldier-he-was-a-duke/20261108-191428
 1919c497a1f5|Public confrontation that ends on a weapon threat
 5e34772f5e94|Violent punishment, cut on a defiant vow of revenge
 bcc102e451df|Defiance in a chapel, cut on an explosion and an armed arrival
@@ -103,7 +103,7 @@ bcc102e451df|Defiance in a chapel, cut on an explosion and an armed arrival
 <div>
 <p><b>Robustness checks</b>:</p>
 <ul>
-  <li><b>Rules-only baseline:</b> only 3 of its top 10 overlap the LLM's top 10. 7 of the rules' top 10 just end at an episode's end, against 3 of 10 for the LLM run.</li>
+  <li><b>Rules-only baseline:</b> only 2 of its top 10 overlap the LLM's top 10. 6 of the rules' top 10 just end at an episode's end, against 3 of 10 for the LLM run.</li>
   <li><b>Ablations:</b> removing the writer's literal "cliffhanger" annotations keeps 7/10 of the top 10 (moderate dependence). Removing the episode-end prior also keeps 7/10.</li>
   <li><b>Smoke runs</b> (3 episodes, live API): 10–12 calls, 0 invalid or truncated replies after the fixes.</li>
   <li><b>Engineering:</b> Python and real-browser regression tests, lint, typing, and a confidentiality scan (PDFs included) that fails on script passages in committable files.</li>
@@ -120,7 +120,7 @@ bcc102e451df|Defiance in a chapel, cut on an explosion and an armed arrival
   <li><b>Single judge:</b> one model scores everything. The flags above are the model's own judgement, not human-verified. None of the 40 stitched candidates made the final 30, so multi-moment promos are untested in practice.</li>
   <li><b>A reporting bug found late:</b> the first full run's report counted episode-ending promos before end refinement (14 of 30; true figure 1 of 30). Fixed with tests; that run is kept unedited.</li>
 </ul>
-<p><b>Scale and cost.</b> Candidate generation is pure code: about 13 s for 50 episodes on an 8 GB laptop with no LLM. By construction one show needs about 70 LLM calls for the main ranking (428 candidates in batches of 8, stitched in batches of 5, clarity in batches of 6, 2 rerank passes), at about 2,200 input tokens per scoring call. That is within the 200 requests/day configured for the free key; the cache makes an interrupted run resume without re-billing. At catalogue scale it is a per-show batch job; paid cost is calls × token price, capped by per-run budgets. <b>Next:</b> editor-labelled golden set; a one-line show premise in the blind clarity check to cut false "needs context" flags; a stronger judge via <code>.env</code>; fit the weights to how posted promos actually perform.</p>
+<p><b>Scale and cost.</b> Candidate generation is pure code: about 13 s for 50 episodes on an 8 GB laptop with no LLM. Estimated from batch sizes (no cold run retained), one show needs about 70 LLM calls for the main ranking (batches of 8 scoring, 5 stitched, 6 clarity, 2 rerank passes), at a measured ~2,200 input tokens per scoring call. That is within the 200 requests/day configured for the free key; the cache makes an interrupted run resume without re-billing. At catalogue scale it is a per-show batch job; paid cost is calls × token price, capped by per-run budgets. <b>Next:</b> editor-labelled golden set; a one-line show premise in the blind clarity check to cut false "needs context" flags; a stronger judge via <code>.env</code>; fit the weights to how posted promos actually perform.</p>
 
 <h2>9. AI tools used, and one place they got it wrong</h2>
 <p>Claude Code built the initial pipeline; Codex assisted with the modular package, FastAPI/React editor, browser tests and final audit. Development history and corrections are logged in <code>AI_USAGE.md</code>. <b>One place it got it wrong:</b> it matched the model's candidate IDs case-sensitively. Gemini answered <code>"C1"</code>, the code expected <code>c1</code>, and the always-lowercase mock let all 169 tests pass, but the first real smoke run rejected 11 of 36 answers. Case-insensitive matching plus a regression test fixed it (0 rejections on the next run).</p>

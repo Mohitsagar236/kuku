@@ -35,6 +35,6 @@ No joined promo reached the top 30."
 against mocked replies. Thank you."
 
 ## Before recording
-- `make ui` running; pick the run `20261108-184323`.
+- `make ui` running; pick the run `20261108-191428`.
 - Do not open any file that shows the API key.
 - Keep under 3:00. Upload as unlisted and set "anyone with the link".

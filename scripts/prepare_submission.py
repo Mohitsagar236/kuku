@@ -74,7 +74,7 @@ def prepare(run: Path, destination: Path) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--run", type=Path, default=ROOT / "outputs" / SLUG / "20261108-184323")
+    parser.add_argument("--run", type=Path, default=ROOT / "outputs" / SLUG / "20261108-191428")
     parser.add_argument(
         "--out", type=Path, default=ROOT / "outputs/packages/kuku-problem1-submission-20261108.zip"
     )

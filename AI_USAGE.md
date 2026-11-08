@@ -167,3 +167,21 @@ Codex refined the React editor with search, review filters, keyboard-aware candi
 One error in the earlier test-only audit: it reported ten malformed-artifact regressions but did not fix them before UI work continued. The completion audit closes that gap. The run repository now validates artifact envelopes and promo records before listing or serving them, skips a malformed main run without hiding healthy runs, and returns a clean corrupt-artifact error on direct access. Regression coverage includes invalid metadata, missing segments, invalid moments and corrupt variants. A reusable source audit checks quotes, timing and CSV ranking, including a negative test that detects a damaged CSV.
 
 The browser runner now accepts PF_TEST_PORT instead of requiring temporary test copies when the default port is busy. Source content, keys and confidential outputs remain excluded from public packages. Test evidence, remaining human evaluation limits, and actual publication/submission status are recorded in docs/ASSIGNMENT_COMPLETION.md.
+
+
+## Demo-data build: call estimate vs reality (2026-11-08)
+
+I estimated **14** Gemini calls for generating the public demo's data and the real build made **5**
+(3 clarity + 2 rerank, 0 first-pass scoring). I got the 14 by running the demo through the mock
+provider (9 main + 5 ablation, 10 of them first-pass scoring calls), and then told the user the gap
+was because "the mock retries and batches differently from Gemini". That explanation was wrong.
+The real reason: the same fictional screenplays had already been scored by real Gemini in three
+earlier "rehearsal" runs (25 live calls, 14:46-14:53), so all 10 scoring calls were answered from the
+response cache; only the clarity prompt (v3) and the rerank inputs were new. The mock estimator has no
+view of the real response cache, so it reports a cold-start count, not what a warm re-run will cost.
+
+Rule from now on: any calls/tokens/cost figure in the documents must come from a real run's
+`run_metadata.json` (and say whether the run was cold or cache-assisted); anything computed from batch
+sizes or the mock must be labelled an estimate. INTERVIEW.md had the ~70-calls figure labelled
+"measured"; it is an estimate and now says so. Its "1.5-3 s per call" latency was also true only for
+small runs; the full-pack run measured a 7.9 s mean.
