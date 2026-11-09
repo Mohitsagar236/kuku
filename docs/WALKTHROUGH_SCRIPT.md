@@ -17,8 +17,8 @@ and ends on a beat. A model scores hook, cliffhanger, intensity and spoiler risk
 with beat IDs, never free-text timestamps, so it cannot invent a cut. The top 60 get a blind
 check: does this make sense to someone who has never seen the show? Code validates every cut."
 
-**1:10 - Ranking and one example (40 s)** *(open `make ui`, promo 1)*
-"The 30 promos are ranked by a blend of rule and model scores plus a listwise rerank. Number
+**1:10 - Ranking and one example (40 s)** *(open `make ui`, Shortlist screen, promo 1)*
+"On the Shortlist screen the promos are ranked by a blend of rule and model scores plus a listwise rerank. Number
 one is Episode 32, 01:59.50 to 02:34.38, 35 seconds. The viewer shows the hook line, the
 cliffhanger line, the exact times and why it was ranked first. Editors can approve, reject,
 add a note, or nudge the cut, and export CSV."

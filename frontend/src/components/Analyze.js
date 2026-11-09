@@ -1,23 +1,13 @@
 import { html } from "../ui.js";
-import { useState, useEffect, useRef } from "react";
-import { getJSON, sendJSON } from "../api.js";
-import { AnalysisProgress } from "./AnalysisProgress.js";
+import { useState } from "react";
+import { sendJSON } from "../api.js";
 
-export function Analyze({ caps, onDone, onClose }) {
+export function AnalyzeForm({ caps, onSubmitted }) {
   const [files, setFiles] = useState([]);
   const [title, setTitle] = useState("");
   const [mode, setMode] = useState("rules");
   const [busy, setBusy] = useState(false);
-  const [stage, setStage] = useState("");
-  const [progress, setProgress] = useState(null);
   const [error, setError] = useState("");
-  const timer = useRef(null);
-  const alive = useRef(true);
-
-  useEffect(() => {
-    alive.current = true;
-    return () => { alive.current = false; clearTimeout(timer.current); };
-  }, []);
 
   const model = (caps && caps.model) || { available: false, name: "", reason: "" };
   const pick = (e) => {
@@ -27,42 +17,26 @@ export function Analyze({ caps, onDone, onClose }) {
   const total = files.reduce((n, f) => n + f.size, 0);
   const canRun = !busy && files.length > 0 && (mode === "rules" || model.available);
 
-  async function status(job) {
-    try { return await getJSON(`/api/analyze/status?job=${encodeURIComponent(job)}`); }
-    catch (e) { return { state: "error", error: e.message }; }
-  }
-  async function poll(job) {
-    const r = await status(job);
-    if (!alive.current) return;
-    if (r.state === "done") { setBusy(false); onDone(r.run); return; }
-    if (r.state === "error") { setBusy(false); setError(r.error || "The analysis failed."); return; }
-    setStage(r.stage || "Working");
-    if (r.progress) setProgress(r.progress);
-    timer.current = setTimeout(() => poll(job), 1000);
-  }
-
   async function run(ev) {
     ev.preventDefault();
     if (!canRun) return;
-    setBusy(true); setError(""); setStage("Uploading"); setProgress({ phase: "queued", mode, model: "", calls: 0, tokens_in: 0, tokens_out: 0, episodes: 0 });
+    setBusy(true); setError("");
     const payload = await Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() })));
     const r = await sendJSON("/api/analyze", { files: payload, mode, title });
+    setBusy(false);
     if (!r.ok) {
-      setBusy(false);
       setError(r.status === 404 || r.status === 405
         ? "This server does not support uploads (it may be running an older version). Restart it and reload the page."
         : (r.data && r.data.error) || `Upload failed (${r.status})`);
       return;
     }
-    setStage("Queued");
-    poll(r.data.job);
+    onSubmitted(r.data.job);
   }
 
   const lim = caps && caps.limits;
   return html`<section class="panel analyze" aria-labelledby="analyze-title">
     <div class="analyze-head">
       <h2 id="analyze-title">Analyze your own screenplay</h2>
-      ${onClose ? html`<button type="button" class="btn small" onClick=${onClose} disabled=${busy}>Close</button>` : null}
     </div>
     <p class="muted">Choose the episode <code>.txt</code> files of one show (the same timestamped screenplay format as the input pack). You get a ranked shortlist with exact cuts, hooks, cliffhangers and a quality report.</p>
     <form onSubmit=${run} class="analyze-form">
@@ -83,8 +57,7 @@ export function Analyze({ caps, onDone, onClose }) {
         ? `Files are processed on this server in a private, unlisted run and deleted after ${caps.retention_minutes} minutes. Do not upload anything you are not allowed to send to this server.`
         : `Files are processed on this machine in a private run and deleted after ${caps ? caps.retention_minutes : 60} minutes.`}</p>
       ${error ? html`<div class="banner err" role="alert">${error}</div>` : null}
-      ${busy ? html`<${AnalysisProgress} progress=${progress} />` : null}
-      <button type="submit" class="btn primary" disabled=${!canRun}>${busy ? "Analysing…" : "Find promos"}</button>
+      <button type="submit" class="btn primary" disabled=${!canRun}>${busy ? "Uploading…" : "Find promos"}</button>
     </form>
   </section>`;
 }

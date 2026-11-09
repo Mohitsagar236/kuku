@@ -119,7 +119,7 @@ test("timestamp clipboard, CSV, ranking and quality report", async ({ page, cont
     await page.getByRole("link", { name: label, exact: true }).click();
     expect((await download).suggestedFilename()).toMatch(/promos.csv|ranking.md/);
   }
-  await page.getByRole("tab", { name: "Quality report", exact: true }).click();
+  await page.getByRole("link", { name: "Report", exact: true }).click();
   await expect(page.locator(".md")).toContainText("Where the tool picks badly");
 });
 
@@ -148,7 +148,10 @@ test("mobile layout and no external network dependency", async ({ page }) => {
 test("empty installation explains how to generate results", async ({ page }) => {
   await page.route("**/api/runs", (route) => route.fulfill({ json: [] }));
   await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Analyze your own screenplay" })).toBeVisible(); // Home still works
+  await page.goto("/#s=shortlist");
   await expect(page.getByText("No results yet.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Go to Home" })).toBeVisible();
 });
 
 test("failed run list can be retried", async ({ page }) => {
@@ -157,7 +160,7 @@ test("failed run list can be retried", async ({ page }) => {
     if (attempts++ === 0) await route.fulfill({ status: 503, json: { error: "Temporarily unavailable" } });
     else await route.continue();
   });
-  await page.goto("/");
+  await page.goto("/#s=shortlist");
   await expect(page.getByText("Couldn't load runs.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Try again", exact: true }).click();
   await expect(page.getByRole("navigation", { name: "Ranked promos" })).toBeVisible();
@@ -268,17 +271,25 @@ function screenplay(n, dur = 110) {
 }
 const upload = (names = [1, 2, 3]) => names.map((n) => ({ name: `episode-00${n}.txt`, mimeType: "text/plain", buffer: Buffer.from(screenplay(n)) }));
 
-test("a visitor can upload episode files and get a ranked, reviewable result", async ({ page }) => {
-  await open(page);
-  await page.getByRole("button", { name: "Analyze your screenplay" }).click();
+const openHome = async (page) => {
+  await page.goto("/");
   await expect(page.getByRole("heading", { name: "Analyze your own screenplay" })).toBeVisible();
+};
+const submitUpload = async (page, names = [1]) => {
+  await page.getByLabel("Episode files").setInputFiles(upload(names));
+  await page.getByRole("button", { name: "Find promos" }).click();
+};
+
+test("a visitor can upload episode files and get a ranked, reviewable result", async ({ page }) => {
+  await openHome(page);
   await expect(page.getByRole("button", { name: "Find promos" })).toBeDisabled(); // nothing chosen yet
-  await page.getByLabel("Episode files").setInputFiles(upload());
+  await page.getByLabel("Episode files").setInputFiles(upload([1, 2, 3]));
   await page.getByLabel("Name").fill("My invented pilot");
   await page.getByRole("button", { name: "Find promos" }).click();
   await expect(page.getByRole("heading", { name: "My invented pilot" })).toBeVisible({ timeout: 60000 });
   await expect(page.getByText("Rules-only ranking")).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Ranked promos" }).locator('[aria-current="true"]')).toBeVisible();
+  expect(await hashOf(page)).toContain("s=shortlist");
   expect(await hashOf(page)).toContain("run=upload-");
   await page.getByRole("button", { name: "Approve", exact: true }).click(); // the editor works on it
   await expect(page.getByRole("button", { name: "Approve", exact: true })).toHaveAttribute("aria-pressed", "true");
@@ -287,8 +298,7 @@ test("a visitor can upload episode files and get a ranked, reviewable result", a
 });
 
 test("there is no API key field; the AI option explains itself when the server has no model", async ({ page }) => {
-  await open(page);
-  await page.getByRole("button", { name: "Analyze your screenplay" }).click();
+  await openHome(page);
   await expect(page.getByLabel("API key")).toHaveCount(0);
   await expect(page.locator('input[type="password"]')).toHaveCount(0);
   await expect(page.getByLabel("Provider")).toHaveCount(0);
@@ -298,61 +308,103 @@ test("there is no API key field; the AI option explains itself when the server h
   await expect(page.getByRole("radio", { name: /Rules only/ })).toBeChecked();
 });
 
-test("the analyse feature is hidden when the server does not offer it", async ({ page }) => {
+test("when the server does not offer uploads, Home explains the command-line route instead", async ({ page }) => {
   await page.route("**/api/capabilities", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ analyze: false }) }));
-  await open(page);
-  await expect(page.getByRole("button", { name: "Analyze your screenplay" })).toHaveCount(0);
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Analyze your own screenplay" })).toHaveCount(0);
+  await expect(page.getByText("Uploads are not available on this server")).toBeVisible();
 });
 
 test("an older server without the endpoint gives a clear message, not a silent failure", async ({ page }) => {
-  await open(page);
+  await openHome(page);
   await page.route("**/api/analyze", (route) => route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "not found" }) }));
-  await page.getByRole("button", { name: "Analyze your screenplay" }).click();
-  await page.getByLabel("Episode files").setInputFiles(upload([1]));
-  await page.getByRole("button", { name: "Find promos" }).click();
+  await submitUpload(page);
   await expect(page.getByRole("alert").filter({ hasText: "does not support uploads" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Find promos" })).toBeEnabled();
 });
 
-test("a file that is not a screenplay shows a readable error and the form stays usable", async ({ page }) => {
-  await open(page);
-  await page.getByRole("button", { name: "Analyze your screenplay" }).click();
+test("a file that is not a screenplay shows a readable error and you can go back and retry", async ({ page }) => {
+  await openHome(page);
   await page.getByLabel("Episode files").setInputFiles([{ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("just prose, no timestamps") }]);
   await page.getByRole("button", { name: "Find promos" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "no parseable episodes" })).toBeVisible({ timeout: 30000 });
-  await expect(page.getByRole("button", { name: "Find promos" })).toBeEnabled();
+  await page.getByRole("button", { name: "Back to upload" }).click();
+  await expect(page.getByRole("button", { name: "Find promos" })).toBeVisible();
 });
 
-test("there is no Run dropdown; the page shows the run it was opened with", async ({ page }) => {
-  await open(page);
-  await expect(page.getByRole("combobox", { name: "Run", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("combobox", { name: "Ranking", exact: true })).toBeVisible();
+// --- separate screens ---------------------------------------------------------------------
+
+test("each screen shows only its own content and has its own address", async ({ page }) => {
+  await page.goto("/");
+  const nav = page.getByRole("navigation", { name: "Main" });
+  await expect(nav.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("heading", { name: "Find the promos hiding in your screenplay" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Ranked promos" })).toHaveCount(0); // no list on Home
+
+  await page.getByRole("link", { name: "Open the shortlist" }).click();
+  await expect(nav.getByRole("link", { name: "Shortlist" })).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("navigation", { name: "Ranked promos" })).toBeVisible();
-});
+  await expect(page.getByRole("heading", { name: "Find the promos hiding in your screenplay" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Analyze your own screenplay" })).toHaveCount(0);
+  await expect(page.locator(".md")).toHaveCount(0);
+  expect(await hashOf(page)).toContain("s=shortlist");
 
-test("the main header has a prominent upload call to action that opens the analyser", async ({ page }) => {
-  await open(page);
-  const cta = page.getByRole("button", { name: "Upload your own screenplay" });
-  await expect(cta).toBeVisible();
-  await cta.click();
+  await nav.getByRole("link", { name: "Report" }).click();
+  await expect(nav.getByRole("link", { name: "Report" })).toHaveAttribute("aria-current", "page");
+  await expect(page.locator(".md")).toContainText("Where the tool picks badly");
+  await expect(page.getByRole("navigation", { name: "Ranked promos" })).toHaveCount(0); // no list on Report
+  expect(await hashOf(page)).toContain("s=report");
+
+  await page.goBack(); // browser back returns to the shortlist
+  await expect(page.getByRole("navigation", { name: "Ranked promos" })).toBeVisible();
+  await nav.getByRole("link", { name: "Home" }).click();
   await expect(page.getByRole("heading", { name: "Analyze your own screenplay" })).toBeVisible();
-  await expect(page.getByLabel("Episode files")).toBeVisible();
+  expect(["", "#"]).toContain(await hashOf(page)); // Home has an empty address
 });
 
-test("opening the page does not scroll it: the header and upload button stay in view", async ({ page }) => {
+test("old links still work: #run=... opens the shortlist and #tab=report opens the report", async ({ page }) => {
+  await open(page);
+  await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Shortlist" })).toHaveAttribute("aria-current", "page");
+  await page.goto(`/#run=${encodeURIComponent(runId)}&tab=report`);
+  await expect(page.locator(".md")).toContainText("Where the tool picks badly");
+});
+
+test("switching screens keeps the selected promo and ranking", async ({ page }) => {
+  await open(page);
+  const third = promos[2];
+  await page.evaluate(([r, id]) => { location.hash = `#s=shortlist&run=${encodeURIComponent(r)}&p=${id}`; }, [runId, third.id]);
+  await expect(selectedItem(page)).toContainText(`#${third.rank} `);
+  const nav = page.getByRole("navigation", { name: "Main" });
+  await nav.getByRole("link", { name: "Report" }).click();
+  await nav.getByRole("link", { name: "Shortlist" }).click();
+  await expect(selectedItem(page)).toContainText(`#${third.rank} `);
+});
+
+test("each screen is short: no long scroll on Home, Shortlist header or Report", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Analyze your own screenplay" })).toBeVisible();
+  expect(await page.evaluate(() => scrollY)).toBe(0);
+  await expect(page.getByLabel("Episode files")).toBeInViewport(); // the upload control is on the first screen
+  await page.getByRole("link", { name: "Open the shortlist" }).click();
+  await expect(page.getByRole("navigation", { name: "Ranked promos" })).toBeVisible();
+  const top = await page.getByRole("navigation", { name: "Ranked promos" }).evaluate((el) => el.getBoundingClientRect().top + scrollY);
+  expect(top).toBeLessThan(560); // the list starts near the top: no big hero pushing it down
+});
+
+test("the page opens at the top and moving through the list does not jump the page", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 700 });
   await open(page);
   await page.waitForTimeout(500);
   expect(await page.evaluate(() => scrollY)).toBe(0);
-  await expect(page.getByRole("button", { name: "Upload your own screenplay" })).toBeInViewport();
   const items = page.getByRole("navigation", { name: "Ranked promos" }).getByRole("button");
   await page.locator("h1").click();
   await page.keyboard.press("j");
   await expect(items.nth(1)).toHaveAttribute("aria-current", "true");
-  expect(await page.evaluate(() => scrollY)).toBe(0); // moving through the list does not jump the page
+  expect(await page.evaluate(() => scrollY)).toBe(0);
 });
 
-// --- live analysis animation ----------------------------------------------------------------
+// --- live analysis animation (own screen) --------------------------------------------------
 
 const scripted = (steps) => {
   let i = 0;
@@ -363,10 +415,11 @@ const scripted = (steps) => {
   };
 };
 const prog = (phase, extra = {}) => ({ state: "running", stage: phase, mode: "model", progress: { phase, mode: "model", model: "gemini/gemini-3.5-flash-lite", episodes: 6, calls: 0, by_task: {}, tokens_in: 0, tokens_out: 0, elapsed_s: 1, ...extra } });
+const mockSubmit = (page, token) => page.route("**/api/analyze", (route) => route.fulfill({ status: 202, contentType: "application/json", body: JSON.stringify({ job: token.repeat(32) }) }));
 
-test("while analysing, the page animates the real phases with live call and token counts", async ({ page }) => {
-  await open(page);
-  await page.route("**/api/analyze", (route) => route.fulfill({ status: 202, contentType: "application/json", body: JSON.stringify({ job: "j".repeat(32) }) }));
+test("analysis runs on its own screen with the real phases and live call and token counts", async ({ page }) => {
+  await openHome(page);
+  await mockSubmit(page, "j");
   await page.route("**/api/analyze/status*", scripted([
     prog("reading", { episodes: 0 }),
     prog("candidates"),
@@ -376,35 +429,61 @@ test("while analysing, the page animates the real phases with live call and toke
     prog("rerank", { calls: 11, tokens_in: 21000, tokens_out: 1600 }),
     prog("rerank", { calls: 11, tokens_in: 21000, tokens_out: 1600 }),
   ]));
-  await page.getByRole("button", { name: "Analyze your screenplay" }).click();
-  await page.getByLabel("Episode files").setInputFiles(upload([1]));
-  await page.getByRole("button", { name: /Find promos|Analysing/ }).first().click();
+  await submitUpload(page);
+  await expect(page.getByRole("heading", { name: "Analyzing your screenplay" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Analyze your own screenplay" })).toHaveCount(0); // the form is gone
+  expect(await hashOf(page)).toContain("s=analyzing");
+  expect(await hashOf(page)).toContain("job=" + "j".repeat(32));
+  await expect(page.getByRole("navigation", { name: "Main" }).getByText("Analyzing")).toBeVisible();
   const panel = page.locator(".aprog");
-  await expect(panel).toBeVisible();
   await expect(panel).toHaveAttribute("data-phase", "reading");
-  await expect(panel.getByText("Reading your screenplay")).toBeVisible();
   await expect(panel).toHaveAttribute("data-phase", "score", { timeout: 15000 });
   await expect(panel.getByText("Gemini is judging each moment's opening hook and cliffhanger")).toBeVisible();
   await expect(panel.locator(".aprog-step.active")).toContainText("Judge hook and cliffhanger");
-  await expect(panel.locator(".aprog-step.done")).toHaveCount(2); // read + find moments
-  await expect(panel.getByText("15,210 / 1,033")).toBeVisible({ timeout: 15000 }); // live tokens in / out
+  await expect(panel.locator(".aprog-step.done")).toHaveCount(2);
+  await expect(panel.getByText("15,210 / 1,033")).toBeVisible({ timeout: 15000 });
   await expect(panel).toHaveAttribute("data-phase", "clarity", { timeout: 15000 });
   await expect(panel.getByText("would a stranger understand")).toBeVisible();
-  await expect(panel.locator(".aprog-window")).toBeVisible(); // the scanning 20-60 s window
+  await expect(panel.locator(".aprog-window")).toBeVisible();
   await expect(panel).toHaveAttribute("data-phase", "rerank", { timeout: 15000 });
   await expect(panel.locator(".aprog-step.done")).toHaveCount(4);
-  await expect(panel.getByText("Model calls")).toBeVisible();
+});
+
+test("reloading during an analysis resumes it, and finishing opens the shortlist screen", async ({ page }) => {
+  await openHome(page);
+  await mockSubmit(page, "r");
+  let done = false;
+  await page.route("**/api/analyze/status*", (route) => {
+    const body = done
+      ? { state: "done", stage: "Done", mode: "rules", progress: { phase: "done", mode: "rules", model: "", episodes: 3, calls: 0, by_task: {}, tokens_in: 0, tokens_out: 0, elapsed_s: 0 }, run: { id: runId, show: "Resumed analysis", kind: "full", generated_at: "2026-11-09T10:00:00", model: "mock/browser-primary", partial: false, count: 6 }, run_id: runId }
+      : { state: "running", stage: "x", mode: "rules", progress: { phase: "candidates", mode: "rules", model: "", episodes: 3, calls: 0, by_task: {}, tokens_in: 0, tokens_out: 0, elapsed_s: 2 } };
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+  });
+  await submitUpload(page);
+  await expect(page.locator(".aprog")).toBeVisible();
+  await page.reload(); // the job id is in the URL, so the screen resumes
+  await expect(page.getByRole("heading", { name: "Analyzing your screenplay" })).toBeVisible();
+  await expect(page.locator(".aprog")).toBeVisible();
+  done = true;
+  await expect(page.getByRole("navigation", { name: "Ranked promos" })).toBeVisible({ timeout: 15000 });
+  expect(await hashOf(page)).toContain("s=shortlist");
+});
+
+test("an expired or unknown analysis link explains itself and offers the way back", async ({ page }) => {
+  await page.route("**/api/analyze/status*", (route) => route.fulfill({ status: 404, contentType: "application/json", body: JSON.stringify({ error: "job not found (it may have expired)" }) }));
+  await page.goto("/#s=analyzing&job=" + "e".repeat(32));
+  await expect(page.getByRole("alert").filter({ hasText: "expired or was not found" })).toBeVisible();
+  await page.getByRole("button", { name: "Back to upload" }).click();
+  await expect(page.getByRole("heading", { name: "Analyze your own screenplay" })).toBeVisible();
 });
 
 test("rules-only analysis shows the AI steps as skipped and no model calls", async ({ page }) => {
-  await open(page);
-  await page.route("**/api/analyze", (route) => route.fulfill({ status: 202, contentType: "application/json", body: JSON.stringify({ job: "k".repeat(32) }) }));
+  await openHome(page);
+  await mockSubmit(page, "k");
   await page.route("**/api/analyze/status*", scripted([
     { state: "running", stage: "x", mode: "rules", progress: { phase: "candidates", mode: "rules", model: "", episodes: 3, calls: 0, by_task: {}, tokens_in: 0, tokens_out: 0, elapsed_s: 1 } },
   ]));
-  await page.getByRole("button", { name: "Analyze your screenplay" }).click();
-  await page.getByLabel("Episode files").setInputFiles(upload([1]));
-  await page.getByRole("button", { name: "Find promos" }).click();
+  await submitUpload(page);
   const panel = page.locator(".aprog");
   await expect(panel.locator(".aprog-step.skipped")).toHaveCount(3);
   await expect(panel.getByText("0 (rules only)")).toBeVisible();
@@ -413,12 +492,10 @@ test("rules-only analysis shows the AI steps as skipped and no model calls", asy
 
 test("the animation is announced politely and stops moving for reduced-motion users", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await open(page);
-  await page.route("**/api/analyze", (route) => route.fulfill({ status: 202, contentType: "application/json", body: JSON.stringify({ job: "m".repeat(32) }) }));
+  await openHome(page);
+  await mockSubmit(page, "m");
   await page.route("**/api/analyze/status*", scripted([prog("score", { calls: 2 })]));
-  await page.getByRole("button", { name: "Analyze your screenplay" }).click();
-  await page.getByLabel("Episode files").setInputFiles(upload([1]));
-  await page.getByRole("button", { name: "Find promos" }).click();
+  await submitUpload(page);
   const panel = page.locator(".aprog");
   await expect(panel.getByRole("status")).toContainText("Gemini is judging");
   await expect(panel.locator(".aprog-film")).toHaveAttribute("aria-hidden", "true");

@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { html } from "./ui.js";
 import { getJSON, sendJSON } from "./api.js";
-import { readHash, writeHash } from "./navigation.js";
+import { readHash, writeHash, hashFor } from "./navigation.js";
 import { KIND, variantLabel, pct, demoScoring, isRulesOnly } from "./format.js";
 import { Markdown } from "./Markdown.js";
 import { CopyButton } from "./components/CopyButton.js";
 import { State } from "./components/State.js";
 import { Detail } from "./components/Detail.js";
 import { PromoList } from "./components/PromoList.js";
-import { Analyze } from "./components/Analyze.js";
+import { AnalyzingScreen } from "./components/AnalyzingScreen.js";
+import { Home } from "./components/Home.js";
+import { MainNav } from "./components/Nav.js";
 export function App() {
   const init = useRef(readHash()).current;
   const [runs, setRuns] = useState(null);
@@ -21,14 +23,14 @@ export function App() {
   const [sel, setSel] = useState(0);
   const [query, setQuery] = useState("");
   const [reviewFilter, setReviewFilter] = useState("all");
-  const [tab, setTab] = useState(init.tab === "report" ? "report" : "promos");
+  const [screen, setScreen] = useState(init.s);
+  const [job, setJob] = useState(init.job);
   const [reload, setReload] = useState(0);
   const [fb, setFb] = useState(null);
   const [fbErr, setFbErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState({});
   const [nudgeErr, setNudgeErr] = useState(null);
-  const [analyzeOpen, setAnalyzeOpen] = useState(false);
   const [caps, setCaps] = useState(null); // server capabilities; null until known or unsupported
   const wantPromo = useRef(init.p);
   const detailRef = useRef(null);
@@ -93,6 +95,7 @@ export function App() {
     return () => ac.abort();
   }, [runId, reload]);
 
+  const tab = screen === "report" ? "report" : "promos"; // existing logic keys off the tab
   const data = run && (run.variants[variant] || run.variants.main);
   const promos = (data && data.promos) || [];
   const cur = runs && runs.find((r) => r.id === runId);
@@ -122,24 +125,27 @@ export function App() {
   const selectedId = selected?.id;
 
   useEffect(() => {
-    writeHash({ run: runId, v: variant, p: selected && selected.id, tab });
-  }, [runId, variant, selected, tab]);
+    writeHash({ s: screen, run: runId, v: variant, p: selected && selected.id, job });
+  }, [screen, runId, variant, selected, job]);
+
+  useEffect(() => { window.scrollTo(0, 0); }, [screen]);
 
   // The URL is the single source of truth: back/forward, an edited address bar or a pasted
   // link in an open tab all fire "hashchange", and the screen follows the hash.
   const latest = useRef({});
-  latest.current = { runs, run, runId, variant, tab, selectedId: selected && selected.id };
+  latest.current = { runs, run, runId, variant, screen, job, selectedId: selected && selected.id };
   useEffect(() => {
     const onHashChange = () => {
       const h = readHash();
       const L = latest.current;
-      const nextTab = h.tab === "report" ? "report" : "promos";
+      setScreen(h.s);
+      setJob(h.job);
+      if (h.s === "home" || h.s === "analyzing") return; // nothing else to sync
       if (h.run && L.runs && !L.runs.some((x) => x.id === h.run)) {
         // Unknown run: keep what is on screen and put a truthful URL back.
-        writeHash({ run: L.runId, v: L.variant, p: L.selectedId, tab: L.tab });
+        writeHash({ s: L.screen, run: L.runId, v: L.variant, p: L.selectedId, job: L.job });
         return;
       }
-      setTab(nextTab);
       if (h.run && h.run !== L.runId) {
         wantPromo.current = h.p; // the run-load effect applies v and p once the run arrives
         setVariant(h.v);
@@ -154,6 +160,7 @@ export function App() {
       const list = (L.run.variants[nextVariant] || {}).promos || [];
       const idx = h.p ? list.findIndex((p) => p.id === h.p) : -1;
       if (nextVariant !== L.variant) setVariant(nextVariant);
+      if (h.s === "report") return; // the report has no promo in its address: keep the selection
       setQuery("");
       setReviewFilter("all"); // a hidden promo would otherwise leave the URL and screen apart
       setSel(Math.max(0, idx));
@@ -246,54 +253,45 @@ export function App() {
       <p>${runsErr}</p><button type="button" class="btn" onClick=${() => setReload((n) => n + 1)}>Try again</button>
     <//>`;
   if (!runs) return html`<${State}>Loading runs…<//>`;
-  if (!runs.length)
-    return html`<div>
-      <${State} title="No results yet.">
-        <p>${caps ? "Analyze a screenplay right here, or run" : "Run"} the tool on a show folder${caps ? "" : " first"} and reload:</p>
-        <pre>make run-rules SHOW_DIR="path/to/show"   # free, no API key\nmake run SHOW_DIR="path/to/show"         # with the LLM in .env</pre>
-      <//>
-      ${caps ? html`<${Analyze} caps=${caps} onDone=${(r) => { setRunId(r.id); setReload((n) => n + 1); }} />` : null}
-    </div>`;
 
   const dl = (name) => `/api/file?id=${encodeURIComponent(runId)}&name=${name}`;
+  const hasRun = !!runId && !!cur;
+  const links = {
+    home: "#",
+    shortlist: hashFor({ s: "shortlist", run: runId, v: variant, p: selectedId }),
+    report: hashFor({ s: "report", run: runId, v: variant }),
+  };
+  const go = (next) => { location.hash = next; };
+  const submitted = (token) => { setJob(token); setScreen("analyzing"); };
+  const finished = (r) => {
+    setJob(""); setVariant("main"); wantPromo.current = "";
+    setRunId(r.id); setReload((n) => n + 1); setScreen("shortlist");
+  };
 
-  return html`<div class="app">
-    <header class="topbar">
-      <div class="brand">
-        <span class="brand-mark" aria-hidden="true">P<span>▶</span></span>
-        <div><h1>Promo Finder</h1><span class="brand-caption">THE EDITOR WORKSPACE</span></div>
-      </div><span class="local-badge"><span></span> ${isDemo ? "Public demo" : "Local workspace"}</span>
-      <div class="workspace-controls">
-      ${run && Object.keys(run.variants).length > 1
-        ? html`<label class="field">
-            <span>Ranking</span>
+  const pageHead = (eyebrow) => html`<section class="page-head">
+    <div><div class="eyebrow"><span class="hero-line" aria-hidden="true"></span> ${eyebrow}</div><h2>${cur?.show || "Your shortlist"}</h2></div>
+    <div class="page-tools">
+      ${screen === "shortlist" && run && Object.keys(run.variants).length > 1
+        ? html`<label class="field"><span>Ranking</span>
             <select aria-label="Ranking" value=${variant} onChange=${(e) => { setVariant(e.target.value); setSel(0); }}>
               ${Object.keys(run.variants).map((v) => html`<option key=${v} value=${v}>${variantLabel(v)}</option>`)}
-            </select>
-          </label>`
+            </select></label>`
         : null}
-      <div class="tabs" role="tablist" aria-label="View">
-        <button type="button" role="tab" aria-selected=${tab === "promos"} class=${tab === "promos" ? "on" : ""} onClick=${() => setTab("promos")}>Promos</button>
-        <button type="button" role="tab" aria-selected=${tab === "report"} class=${tab === "report" ? "on" : ""} onClick=${() => setTab("report")}>Quality report</button>
-      </div>
-      ${caps ? html`<button type="button" class="btn small analyze-open" onClick=${() => setAnalyzeOpen((v) => !v)} aria-expanded=${analyzeOpen}>Analyze your screenplay</button>` : null}
+      <div class="run-meta"><span class="live-dot"></span>${KIND[cur?.kind] || "Analysis"}<span class="meta-divider">/</span>${promos.length} candidates</div>
       ${run && run.downloads && run.downloads.length
         ? html`<div class="downloads">${run.downloads.map((n) => html`<a key=${n} class="btn small" href=${dl(n)} download>${n.endsWith(".csv") ? "Download CSV" : "Download ranking"}</a>`)}</div>`
         : null}
-      </div>
-    </header>
+    </div>
+  </section>`;
 
-    <div class="workspace-heading"><div><div class="eyebrow"><span class="hero-line" aria-hidden="true"></span> YOUR NEXT GREAT PROMO STARTS HERE</div><h2>${cur?.show || "Your shortlist"}</h2><p>Review the shortlist. Shape the next standout promo.</p>${caps ? html`<button type="button" class="btn primary hero-cta" onClick=${() => { setAnalyzeOpen(true); setTimeout(() => document.getElementById("analyze-title")?.scrollIntoView({ behavior: "smooth", block: "center" }), 50); }}>Upload your own screenplay</button>` : null}</div><div class="hero-aside"><div class="hero-format" aria-hidden="true"><span>20–60</span><small>SECONDS. ALL IMPACT.</small></div><div class="run-meta"><span class="live-dot"></span>${KIND[cur?.kind] || "Analysis"}<span class="meta-divider">/</span>${promos.length} candidates</div></div></div>
+  const noResults = html`<${State} title="No results yet.">
+    <p>Upload a screenplay on the Home screen, or run the tool on a show folder and reload.</p>
+    <a class="btn primary" href="#">Go to Home</a>
+  <//>`;
 
-    ${caps && analyzeOpen
-      ? html`<${Analyze} caps=${caps} onClose=${() => setAnalyzeOpen(false)} onDone=${(r) => {
-          setAnalyzeOpen(false); setVariant("main"); setTab("promos"); wantPromo.current = "";
-          setRunId(r.id); setReload((n) => n + 1);
-        }} />`
-      : null}
-
+  const shortlistScreen = !hasRun ? noResults : html`<div>
+    ${pageHead("SHORTLIST")}
     ${isDemo ? html`<div class="banner info demo-notice" role="note"><strong>Interactive demo</strong> · Fictional sample story. ${demoScoring(cur)}. Reviews are shared and reset when the service restarts.</div>` : null}
-
     ${cur && isRulesOnly(cur.model)
       ? html`<div class="banner info" role="note">Rules-only ranking: promos are ranked by timing and keyword rules; no AI model judged them. Run it with a model for better hook, cliffhanger and clarity judgement.</div>`
       : null}
@@ -303,7 +301,6 @@ export function App() {
     ${variant !== "main" && run && run.variants[variant]
       ? html`<div class="banner info" role="note">You are viewing an ablation (a robustness check), not the ranking to post from.</div>`
       : null}
-
     ${fbErr ? html`<div class="banner err" role="alert">Editor feedback unavailable: ${fbErr}</div>` : null}
     ${fb && reviewable && !runErr && run
       ? html`<div class="reviewbar" role="status">
@@ -314,25 +311,49 @@ export function App() {
           <div class="review-quality" title="Unreviewed promos count as misses until reviewed"><span class="metric-label">PRECISION @ ${fb.summary.k}</span><strong>${pct(fb.summary.precision_at_k)}</strong><span class="muted small">${fb.summary.top_unreviewed} in top ${fb.summary.top} still to review</span></div>
         </div>`
       : null}
-
     ${runErr
       ? html`<${State} kind="err" title="Couldn't load this run."><p>${runErr}</p>
           <button type="button" class="btn" onClick=${() => setReload((n) => n + 1)}>Try again</button><//>`
       : !run
         ? html`<${State}>Loading run…<//>`
-        : tab === "report"
-          ? html`<main class=${"report" + (loading ? " dim" : "")}><article class="panel">
-              ${run.report ? html`<${Markdown} src=${run.report} />` : html`<p class="muted">This run has no quality report (rules baselines don't write one).</p>`}
-            </article></main>`
-          : html`<main class=${"grid" + (loading ? " dim" : "")} aria-busy=${loading}>
-              ${promos.length
-                ? html`<${PromoList} promos=${promos} visibleIndices=${visibleIndices} sel=${sel} onSelect=${select} entries=${entries} query=${query} onQuery=${setQuery} filter=${reviewFilter} onFilter=${setReviewFilter} filterEnabled=${reviewable && !!fb} />`
-                : null}
-              ${selected
-                ? html`<${Detail} p=${selected} detailRef=${detailRef} fb=${fb} review=${review} reviewable=${reviewable} position=${visibleIndices.indexOf(sel)} count=${visibleIndices.length} onPrevious=${() => select(visibleIndices[visibleIndices.indexOf(sel) - 1], false)} onNext=${() => select(visibleIndices[visibleIndices.indexOf(sel) + 1], false)} />`
-                : promos.length ? html`<${State} title="No matching promos."><p>Try another search or clear your filters to see the full shortlist.</p><button type="button" class="btn" onClick=${() => { setQuery(""); setReviewFilter("all"); }}>Clear filters</button><//>` : html`<${State} title="No promos in this ranking.">The tool found no candidate that passed its hook and cliffhanger gates.<//>`}
-            </main>`}
-    <footer class="foot muted"><span>${isDemo ? "Sample workspace · Temporary shared reviews" : "Private workspace · Reviews saved on this device"}</span><span><kbd>↑</kbd> <kbd>↓</kbd> or <kbd>j</kbd> <kbd>k</kbd> to navigate</span>${fb?.refresh_command ? html`<details class="report-tools"><summary>Report tools</summary><${CopyButton} text=${fb.refresh_command} label="Copy report-refresh command" /></details>` : null}</footer>
+        : html`<main class=${"grid" + (loading ? " dim" : "")} aria-busy=${loading}>
+            ${promos.length
+              ? html`<${PromoList} promos=${promos} visibleIndices=${visibleIndices} sel=${sel} onSelect=${select} entries=${entries} query=${query} onQuery=${setQuery} filter=${reviewFilter} onFilter=${setReviewFilter} filterEnabled=${reviewable && !!fb} />`
+              : null}
+            ${selected
+              ? html`<${Detail} p=${selected} detailRef=${detailRef} fb=${fb} review=${review} reviewable=${reviewable} position=${visibleIndices.indexOf(sel)} count=${visibleIndices.length} onPrevious=${() => select(visibleIndices[visibleIndices.indexOf(sel) - 1], false)} onNext=${() => select(visibleIndices[visibleIndices.indexOf(sel) + 1], false)} />`
+              : promos.length ? html`<${State} title="No matching promos."><p>Try another search or clear your filters to see the full shortlist.</p><button type="button" class="btn" onClick=${() => { setQuery(""); setReviewFilter("all"); }}>Clear filters</button><//>` : html`<${State} title="No promos in this ranking.">The tool found no candidate that passed its hook and cliffhanger gates.<//>`}
+          </main>`}
+  </div>`;
+
+  const reportScreen = !hasRun ? noResults : html`<div>
+    ${pageHead("QUALITY REPORT")}
+    ${runErr
+      ? html`<${State} kind="err" title="Couldn't load this run."><p>${runErr}</p>
+          <button type="button" class="btn" onClick=${() => setReload((n) => n + 1)}>Try again</button><//>`
+      : !run
+        ? html`<${State}>Loading run…<//>`
+        : html`<main class=${"report" + (loading ? " dim" : "")}><article class="panel">
+            ${run.report ? html`<${Markdown} src=${run.report} />` : html`<p class="muted">This run has no quality report (rules baselines don't write one).</p>`}
+          </article></main>`}
+  </div>`;
+
+  return html`<div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">P<span>▶</span></span>
+        <div><h1>Promo Finder</h1><span class="brand-caption">THE EDITOR WORKSPACE</span></div>
+      </div>
+      <${MainNav} screen=${screen} links=${links} hasRun=${hasRun} />
+      <span class="local-badge"><span></span> ${isDemo ? "Public demo" : "Local workspace"}</span>
+    </header>
+
+    ${screen === "home"
+      ? html`<${Home} caps=${caps} cur=${cur} isDemo=${isDemo} links=${links} onSubmitted=${submitted} />`
+      : screen === "analyzing"
+        ? html`<main class="home"><${AnalyzingScreen} job=${job} onDone=${finished} onBack=${() => go("#")} /></main>`
+        : screen === "report" ? reportScreen : shortlistScreen}
+
+    <footer class="foot muted"><span>${isDemo ? "Sample workspace · Temporary shared reviews" : "Private workspace · Reviews saved on this device"}</span>${screen === "shortlist" ? html`<span><kbd>↑</kbd> <kbd>↓</kbd> or <kbd>j</kbd> <kbd>k</kbd> to navigate</span>` : null}${fb?.refresh_command ? html`<details class="report-tools"><summary>Report tools</summary><${CopyButton} text=${fb.refresh_command} label="Copy report-refresh command" /></details>` : null}</footer>
   </div>`;
 }
-
